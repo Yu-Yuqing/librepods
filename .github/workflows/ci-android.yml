@@ -108,4 +108,4 @@ jobs:
           test -n "$apk"
           install_name="LibrePods-FOSS-v$VERSION-release.apk"
           cp "$apk" "$install_name"
-          gh release create "v$VERSION" "$install_name" --title "LibrePods $VERSION (community build)" --notes-file docs/release-notes-rc2.md
+          gh release create "v$VERSION" "$install_name" --title "LibrePods $VERSION (community build)" --notes-file docs/release-notes-rc1.md
