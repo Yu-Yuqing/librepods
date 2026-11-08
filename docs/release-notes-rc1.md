@@ -12,6 +12,14 @@
 
 - **外观默认值**：新安装默认关闭 Use Material 3 Expressive，保留开关及已有用户的设置。
 
+## 验证结果
+
+- 完整发布构建 `packageReleaseArtifacts` 成功，生成 release/debug APK 及对应 Root 模块 ZIP。
+- [GitHub Linux CI](https://github.com/Yu-Yuqing/librepods/actions/runs/42463618468)：147 项测试全部通过，0 失败、0 跳过。
+- release/debug APK 签名校验通过，两个 APK 使用同一社区签名；Root ZIP 内的 APK 与对应安装包 SHA-256 完全一致。
+- Use Material 3 Expressive 的首次读取、偏好监听和设置页读取默认值均为关闭，已保存的用户设置继续生效。
+- 本次按要求只交付源码和安装包，没有替换手机上已有的安装；集成 APK 的实机验证仍待完成。
+
 ## 使用条件
 
 系统电量同步需要 **Android 14 或以上**，以及支持当前 API 的 **LSPosed/Vector**。在框架中启用 LibrePods，并勾选“蓝牙（com.android.bluetooth）”，重启、解锁并连接 AirPods。保留你原有的其他 LibrePods 作用域。
