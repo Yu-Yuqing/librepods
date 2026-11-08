@@ -1,11 +1,9 @@
 <resources>
     <string name="assistant_permissions_title">Voice assistant permissions</string>
-    <string name="assistant_permissions_xiaomi_help">To launch your assistant from the home screen or lock screen, allow the permissions below in Other permissions. Tap a row to open settings. These permissions cannot be granted with a normal permission popup.</string>
-    <string name="assistant_permissions_help">Some systems restrict launching the assistant while LibrePods is in the background. Allow display over other apps and check background restrictions if launching fails. Your assistant may require separate lock screen settings.</string>
     <string name="assistant_background_permission">Open windows while running in the background</string>
-    <string name="assistant_background_help">Allows an earbud press to open the assistant after you leave LibrePods.</string>
+    <string name="assistant_background_help">Allows waking the assistant in the background.</string>
     <string name="assistant_lockscreen_permission">Show on lock screen</string>
-    <string name="assistant_lockscreen_help">Allows launching the assistant while locked. This does not unlock your phone.</string>
+    <string name="assistant_lockscreen_help">Allows waking the assistant on the lock screen.</string>
     <string name="assistant_overlay_permission">Display over other apps</string>
     <string name="assistant_overlay_help">Some systems require this permission to launch the assistant from the background.</string>
     <string name="assistant_permission_allowed">Allowed</string>

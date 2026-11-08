@@ -1,11 +1,9 @@
 <resources>
     <string name="assistant_permissions_title">语音助手所需权限</string>
-    <string name="assistant_permissions_xiaomi_help">若要在桌面或锁屏时长按耳机唤起助手，请在“其他权限”中允许以下权限。点击对应项目可前往设置。这类权限无法通过普通授权弹窗直接开启。</string>
-    <string name="assistant_permissions_help">部分系统会限制后台唤起助手。若唤起失败，请允许悬浮窗并检查后台限制。语音助手本身也可能有单独的锁屏设置。</string>
     <string name="assistant_background_permission">后台弹出界面</string>
-    <string name="assistant_background_help">返回桌面或使用其他 App 时，也能通过耳机唤起助手。</string>
+    <string name="assistant_background_help">允许后台唤醒语音助手</string>
     <string name="assistant_lockscreen_permission">锁屏显示</string>
-    <string name="assistant_lockscreen_help">允许锁屏时唤起助手，不会解除手机锁屏。</string>
+    <string name="assistant_lockscreen_help">允许锁屏唤醒语音助手</string>
     <string name="assistant_overlay_permission">显示在其他应用上层（悬浮窗）</string>
     <string name="assistant_overlay_help">部分系统需要此权限，才能从后台打开助手。</string>
     <string name="assistant_permission_allowed">已允许</string>

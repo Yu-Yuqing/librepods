@@ -89,6 +89,7 @@ import me.kavishdevar.librepods.BuildConfig
 import me.kavishdevar.librepods.R
 import me.kavishdevar.librepods.presentation.components.AppInfoCard
 import me.kavishdevar.librepods.presentation.components.AssistantPermissionGuide
+import me.kavishdevar.librepods.presentation.components.ListItemOrientation
 import me.kavishdevar.librepods.presentation.components.DeviceInfoCard
 import me.kavishdevar.librepods.presentation.components.StyledBottomSheet
 import me.kavishdevar.librepods.presentation.components.StyledButton
@@ -256,6 +257,7 @@ fun AppSettingsScreen(
             )
             StyledListItem(
                 name = stringResource(R.string.notification_access),
+                orientation = ListItemOrientation.Vertical,
                 description = stringResource(
                     if (hasNotificationAccess.value) {
                         R.string.notification_access_granted
@@ -267,6 +269,7 @@ fun AppSettingsScreen(
             )
             StyledListItem(
                 name = stringResource(R.string.voice_engine),
+                orientation = ListItemOrientation.Vertical,
                 description = stringResource(
                     if (xiaomiTtsAvailable) {
                         R.string.xiaoai_voice_engine_active
@@ -443,6 +446,7 @@ fun AppSettingsScreen(
             ) {
                 StyledListItem(
                     name = stringResource(R.string.spatial_audio_off),
+                    orientation = ListItemOrientation.Vertical,
                     description = stringResource(R.string.spatial_audio_off_description),
                     selected = state.spatialAudioMode == SpatialAudioMode.OFF,
                     onClick = { viewModel.setSpatialAudioMode(SpatialAudioMode.OFF) },
@@ -450,6 +454,7 @@ fun AppSettingsScreen(
                 )
                 StyledListItem(
                     name = stringResource(R.string.spatial_audio_fixed),
+                    orientation = ListItemOrientation.Vertical,
                     description = stringResource(R.string.spatial_audio_fixed_description),
                     selected = state.spatialAudioMode == SpatialAudioMode.FIXED,
                     onClick = { viewModel.setSpatialAudioMode(SpatialAudioMode.FIXED) },
@@ -457,6 +462,7 @@ fun AppSettingsScreen(
                 )
                 StyledListItem(
                     name = stringResource(R.string.spatial_audio_head_tracking),
+                    orientation = ListItemOrientation.Vertical,
                     description = if (state.spatialAudioHelperAvailable) {
                         stringResource(R.string.spatial_audio_description)
                     } else {

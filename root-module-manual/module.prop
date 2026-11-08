@@ -1,6 +1,6 @@
 id=librepods
 name=LibrePods
-version=v1.0.10-RC1
-versionCode=83
+version=v1.0.10-RC2
+versionCode=84
 author=beidaoc
 description=Installs LibrePods as a system app and provides the root head-tracker helper used for Android spatial audio integration.

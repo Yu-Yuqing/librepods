@@ -284,7 +284,12 @@ private fun StyledListItemContent(
                         leadingContent()
                         Spacer(modifier = Modifier.width(12.dp))
                     }
-                    Column (verticalArrangement = Arrangement.Center) {
+                    Column(
+                        modifier = if (orientation == ListItemOrientation.Vertical) {
+                            Modifier.weight(1f)
+                        } else Modifier,
+                        verticalArrangement = Arrangement.Center,
+                    ) {
                         Text(
                             text = name,
                             style = MaterialTheme.typography.bodyMedium,
@@ -300,7 +305,11 @@ private fun StyledListItemContent(
                         }
                     }
 
-                    Spacer(modifier = Modifier.weight(1f))
+                    if (orientation == ListItemOrientation.Vertical) {
+                        Spacer(modifier = Modifier.width(12.dp))
+                    } else {
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
 
                     if (orientation == ListItemOrientation.Horizontal && description != null) {
                         Text(

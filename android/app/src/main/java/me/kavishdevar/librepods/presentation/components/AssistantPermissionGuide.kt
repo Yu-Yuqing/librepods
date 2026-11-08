@@ -46,8 +46,6 @@ fun AssistantPermissionGuide() {
     )
     StyledList(
         title = stringResource(R.string.assistant_permissions_title),
-        description = stringResource(if (AssistantPermissions.isXiaomi)
-            R.string.assistant_permissions_xiaomi_help else R.string.assistant_permissions_help),
     ) {
         if (AssistantPermissions.isXiaomi) {
             StyledListItem(
@@ -55,14 +53,14 @@ fun AssistantPermissionGuide() {
                 description = stringResource(R.string.assistant_background_help),
                 orientation = ListItemOrientation.Vertical,
                 onClick = { open() },
-                trailingContent = { Text(status(background)) },
+                trailingContent = { Text(status(background), maxLines = 1, softWrap = false) },
             )
             StyledListItem(
                 name = stringResource(R.string.assistant_lockscreen_permission),
                 description = stringResource(R.string.assistant_lockscreen_help),
                 orientation = ListItemOrientation.Vertical,
                 onClick = { open() },
-                trailingContent = { Text(status(lockScreen)) },
+                trailingContent = { Text(status(lockScreen), maxLines = 1, softWrap = false) },
             )
         }
         if (!overlay || !AssistantPermissions.isXiaomi) {
@@ -72,7 +70,8 @@ fun AssistantPermissionGuide() {
                 orientation = ListItemOrientation.Vertical,
                 onClick = { open(true) },
                 trailingContent = { Text(stringResource(if (overlay)
-                    R.string.assistant_permission_allowed else R.string.assistant_permission_required)) },
+                    R.string.assistant_permission_allowed else R.string.assistant_permission_required),
+                    maxLines = 1, softWrap = false) },
             )
         }
     }
