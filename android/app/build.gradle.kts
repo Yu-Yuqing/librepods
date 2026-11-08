@@ -1,6 +1,6 @@
 import java.util.Properties
 
-val appVersionName = "1.0.10"
+val appVersionName = "1.0.10-yuqing.1"
 
 plugins {
     alias(libs.plugins.android.application)
@@ -49,7 +49,7 @@ android {
     defaultConfig {
         applicationId = "me.kavishdevar.librepods"
         targetSdk = 37
-        versionCode = 82
+        versionCode = 83
         versionName = appVersionName
     }
     buildTypes {
@@ -184,8 +184,10 @@ val ndkHostTag = when {
 }
 
 val buildHeadTrackerHelper = tasks.register<Exec>("buildHeadTrackerHelper") {
+    val windowsHost = ndkHostTag == "windows-x86_64"
     val compiler = androidComponents.sdkComponents.ndkDirectory.get().asFile.resolve(
-        "toolchains/llvm/prebuilt/$ndkHostTag/bin/aarch64-linux-android33-clang++"
+        "toolchains/llvm/prebuilt/$ndkHostTag/bin/aarch64-linux-android33-clang++" +
+            if (windowsHost) ".cmd" else ""
     )
 
     inputs.file(headTrackerSource)
@@ -194,8 +196,10 @@ val buildHeadTrackerHelper = tasks.register<Exec>("buildHeadTrackerHelper") {
 
     headTrackerOutput.get().asFile.parentFile.mkdirs()
 
-    commandLine(
-        compiler,
+    val compilerCommand = if (windowsHost) {
+        listOf("cmd", "/c", compiler.absolutePath)
+    } else listOf(compiler.absolutePath)
+    commandLine(compilerCommand + listOf(
         "-std=c++20",
         "-O2",
         "-Wall",
@@ -204,10 +208,10 @@ val buildHeadTrackerHelper = tasks.register<Exec>("buildHeadTrackerHelper") {
         "-static-libstdc++",
         "-Wl,--gc-sections",
         "-Wl,--strip-all",
-        headTrackerSource,
+        headTrackerSource.absolutePath,
         "-o",
-        headTrackerOutput.get().asFile
-    )
+        headTrackerOutput.get().asFile.absolutePath
+    ))
 }
 
 fun cap(s: String) = s.replaceFirstChar { it.uppercase() }

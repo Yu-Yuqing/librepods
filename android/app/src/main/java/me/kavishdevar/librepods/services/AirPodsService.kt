@@ -133,6 +133,7 @@ import me.kavishdevar.librepods.utils.RootAvrcpVolumeController
 import me.kavishdevar.librepods.utils.RootSpatialAudioController
 import me.kavishdevar.librepods.utils.SpatialAudioMode
 import me.kavishdevar.librepods.utils.SystemApisUtils
+import me.kavishdevar.librepods.utils.SystemBatteryBroadcaster
 import me.kavishdevar.librepods.utils.SystemApisUtils.DEVICE_TYPE_UNTETHERED_HEADSET
 import me.kavishdevar.librepods.utils.SystemApisUtils.METADATA_COMPANION_APP
 import me.kavishdevar.librepods.utils.SystemApisUtils.METADATA_DEVICE_TYPE
@@ -2175,7 +2176,7 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
         val currentAddress = device?.address ?: macAddress
         if (currentAddress.isBlank()) return
 
-        sendBroadcast(
+        val bridgeIntent =
             Intent(MiLinkAirPodsBridgeContract.ACTION_STATE_CHANGED).apply {
                 setPackage(MiLinkAirPodsBridgeContract.MI_LINK_PACKAGE)
                 addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
@@ -2216,8 +2217,9 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
                 putExtra(MiLinkAirPodsBridgeContract.EXTRA_LEFT_CHARGING, charging(left))
                 putExtra(MiLinkAirPodsBridgeContract.EXTRA_RIGHT_CHARGING, charging(right))
                 putExtra(MiLinkAirPodsBridgeContract.EXTRA_CASE_CHARGING, charging(case))
-            },
-        )
+            }
+        sendBroadcast(bridgeIntent)
+        SystemBatteryBroadcaster.send(this, bridgeIntent)
         Log.d(TAG, "MiLink bridge state sent: $reason")
     }
 
@@ -2261,7 +2263,7 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
     }
 
     fun setBatteryMetadata() {
-        if (checkSelfPermission("android.permission.BLUETOOTH_PRIVILEGED") != PackageManager.PERMISSION_GRANTED) {
+        if (checkSelfPermission("android.permission.BLUETOOTH_PRIVILEGED") == PackageManager.PERMISSION_GRANTED) {
             device?.let { it ->
                 SystemApisUtils.setMetadata(
                     it,

@@ -52,6 +52,7 @@ import me.kavishdevar.librepods.R
 import me.kavishdevar.librepods.bluetooth.AACPManager
 import me.kavishdevar.librepods.data.StemAction
 import me.kavishdevar.librepods.presentation.components.ListItemOrientation
+import me.kavishdevar.librepods.presentation.components.AssistantPermissionGuide
 import me.kavishdevar.librepods.presentation.components.StyledButton
 import me.kavishdevar.librepods.presentation.components.StyledList
 import me.kavishdevar.librepods.presentation.components.StyledListItem
@@ -116,6 +117,11 @@ fun LongPress(viewModel: AirPodsViewModel, name: String, navigateToPurchase: () 
                 },
                 enabled = state.isPremium
             )
+        }
+
+        if (longPressAction == StemAction.DIGITAL_ASSISTANT) {
+            Spacer(modifier = Modifier.height(24.dp))
+            AssistantPermissionGuide()
         }
 
         if (!state.isPremium) {

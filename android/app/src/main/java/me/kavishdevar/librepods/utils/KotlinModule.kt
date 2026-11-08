@@ -30,6 +30,7 @@ class KotlinModule: XposedModule() {
         }
 
         if (param.packageName == "com.google.android.bluetooth" || param.packageName == "com.android.bluetooth") {
+            SystemBatterySync.install(this, param)
             log(Log.INFO, TAG, "Bluetooth app detected, hooking l2c_fcr_chk_chan_modes")
             try {
                 if (param.isFirstPackage) {

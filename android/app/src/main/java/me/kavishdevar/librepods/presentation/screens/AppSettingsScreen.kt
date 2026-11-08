@@ -88,6 +88,7 @@ import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import me.kavishdevar.librepods.BuildConfig
 import me.kavishdevar.librepods.R
 import me.kavishdevar.librepods.presentation.components.AppInfoCard
+import me.kavishdevar.librepods.presentation.components.AssistantPermissionGuide
 import me.kavishdevar.librepods.presentation.components.DeviceInfoCard
 import me.kavishdevar.librepods.presentation.components.StyledBottomSheet
 import me.kavishdevar.librepods.presentation.components.StyledButton
@@ -224,6 +225,8 @@ fun AppSettingsScreen(
             checked = state.hideFromRecents,
             onCheckedChange = viewModel::setHideFromRecents
         )
+
+        AssistantPermissionGuide()
 
         val openNotificationAccessSettings: () -> Unit = {
             runCatching {

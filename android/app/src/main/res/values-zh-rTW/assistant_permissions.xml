@@ -1,0 +1,15 @@
+<resources>
+    <string name="assistant_permissions_title">語音助理所需權限</string>
+    <string name="assistant_permissions_xiaomi_help">若要在桌面或鎖定畫面時長按耳機喚起助理，請在「其他權限」中允許以下權限。點選對應項目可前往設定。這類權限無法透過一般授權彈窗直接開啟。</string>
+    <string name="assistant_permissions_help">部分系統會限制背景喚起助理。若喚起失敗，請允許懸浮視窗並檢查背景限制。語音助理本身也可能有獨立的鎖定畫面設定。</string>
+    <string name="assistant_background_permission">背景彈出介面</string>
+    <string name="assistant_background_help">返回桌面或使用其他 App 時，也能透過耳機喚起助理。</string>
+    <string name="assistant_lockscreen_permission">鎖定畫面顯示</string>
+    <string name="assistant_lockscreen_help">允許鎖定畫面時喚起助理，不會解除手機鎖定。</string>
+    <string name="assistant_overlay_permission">顯示在其他應用程式上層</string>
+    <string name="assistant_overlay_help">部分系統需要此權限，才能從背景開啟助理。</string>
+    <string name="assistant_permission_allowed">已允許</string>
+    <string name="assistant_permission_required">前往設定</string>
+    <string name="assistant_permission_unknown">請手動確認</string>
+    <string name="assistant_settings_unavailable">請在系統設定中開啟 LibrePods 的應用程式資訊，檢查「其他權限」。</string>
+</resources>
