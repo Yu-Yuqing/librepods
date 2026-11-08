@@ -80,7 +80,7 @@ fun StyledListItem(
     description: String? = null,
     height: Dp = 58.dp,
     enabled: Boolean = true,
-    orientation: ListItemOrientation = ListItemOrientation.Horizontal,
+    orientation: ListItemOrientation = ListItemOrientation.Vertical,
     leadingContent: (@Composable () -> Unit)? = null,
     trailingContent: (@Composable () -> Unit)? = null
 ) {
@@ -133,7 +133,7 @@ fun StyledListScope.StyledListItem(
     onClick: (() -> Unit)? = null,
     description: String? = null,
     enabled: Boolean = onClick != null,
-    orientation: ListItemOrientation = ListItemOrientation.Horizontal,
+    orientation: ListItemOrientation = ListItemOrientation.Vertical,
     selected: Boolean? = null,
     leadingContent: (@Composable () -> Unit)? = null,
     trailingContent: (@Composable () -> Unit)? = null
@@ -171,7 +171,7 @@ private fun StyledListItemContent(
     enabled: Boolean = true,
     index: Int,
     count: Int,
-    orientation: ListItemOrientation = ListItemOrientation.Horizontal,
+    orientation: ListItemOrientation = ListItemOrientation.Vertical,
     selected: Boolean? = null,
     leadingContent: (@Composable () -> Unit)? = null,
     trailingContent: (@Composable () -> Unit)? = null
