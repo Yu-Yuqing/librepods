@@ -16,9 +16,7 @@
 
 系统电量同步需要 **Android 14 或以上**，以及支持当前 API 的 **LSPosed/Vector**。在框架中启用 LibrePods，并勾选“蓝牙（com.android.bluetooth）”，重启、解锁并连接 AirPods。保留你原有的其他 LibrePods 作用域。
 
-此同步路径不会重新配对或争抢耳机连接。它依赖 Android 蓝牙内部接口，其他 ROM 或后续系统版本仍需验证。原独立电量同步补丁已在 Android 17 / HyperOS OS4.0 上验证系统设置和桌面小组件可显示电量；集成版还需要对应的安装后验证。
-
-若此前安装了“LibrePods 电量同步补丁”（local.librepods.batterysync），切换到集成版后请在 LSPosed 停用该独立补丁，避免重复同步。
+此同步路径不会重新配对或争抢耳机连接。它依赖 Android 蓝牙内部接口，其他 ROM 或后续系统版本仍需验证。本集成 APK 已进行构建与单元测试验证，尚未进行安装后的手机实机验证。
 
 ## 安装与签名
 
