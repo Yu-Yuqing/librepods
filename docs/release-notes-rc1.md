@@ -18,13 +18,13 @@
 - [GitHub Linux CI](https://github.com/Yu-Yuqing/librepods/actions/runs/42463618468)：147 项测试全部通过，0 失败、0 跳过。
 - release/debug APK 签名校验通过，两个 APK 使用同一社区签名；Root ZIP 内的 APK 与对应安装包 SHA-256 完全一致。
 - Use Material 3 Expressive 的首次读取、偏好监听和设置页读取默认值均为关闭，已保存的用户设置继续生效。
-- 本次按要求只交付源码和安装包，没有替换手机上已有的安装；集成 APK 的实机验证仍待完成。
+- 集成 APK 尚未进行安装后的手机实机验证。
 
 ## 使用条件
 
 系统电量同步需要 **Android 14 或以上**，以及支持当前 API 的 **LSPosed/Vector**。在框架中启用 LibrePods，并勾选“蓝牙（com.android.bluetooth）”，重启、解锁并连接 AirPods。保留你原有的其他 LibrePods 作用域。
 
-此同步路径不会重新配对或争抢耳机连接。它依赖 Android 蓝牙内部接口，其他 ROM 或后续系统版本仍需验证。本集成 APK 已进行构建与单元测试验证，尚未进行安装后的手机实机验证。
+此同步路径不会重新配对或争抢耳机连接。它依赖 Android 蓝牙内部接口，其他 ROM 或后续系统版本仍需验证。验证范围见上方“验证结果”。
 
 ## 安装与签名
 
