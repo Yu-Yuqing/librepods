@@ -99,4 +99,4 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ needs.build.outputs.version }}
         run: |
-          gh release create "v$VERSION" artifacts/release/* --title "LibrePods $VERSION (community build)" --notes-file docs/release-notes-yuqing.md
+          gh release create "v$VERSION" artifacts/release/* --title "LibrePods $VERSION (community build)" --notes-file docs/release-notes-rc1.md

@@ -187,7 +187,7 @@ class AppSettingsViewModel(application: Application) : AndroidViewModel(applicat
                     PREFERENCE_HIDE_FROM_RECENTS,
                     false
                 ),
-                m3eEnabled = sharedPreferences.getBoolean("m3e_enabled", true)
+                m3eEnabled = sharedPreferences.getBoolean("m3e_enabled", false)
             )
         }
     }

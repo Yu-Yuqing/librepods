@@ -1,4 +1,4 @@
-# LibrePods 1.0.10-yuqing.1 社区版
+# LibrePods 1.0.10-RC1 社区版
 
 基于 [beidaoc/librepods v1.0.10](https://github.com/beidaoc/librepods/releases/tag/v1.0.10) 修改，保留上游功能与 GPL-3.0 许可。这是第三方社区构建，非上游官方版本。
 
@@ -9,6 +9,8 @@
 - **语音助手权限引导**：选择长按“语音助手”后显示后台弹出界面、锁屏显示等所需权限，点击项目可前往系统设置；App 设置内也保留入口。返回 App 后重新检查状态。系统限制读取状态时显示“请手动确认”。
 - 修正原版电量元数据写入时反向的蓝牙特权判断。
 - Fork 的 Android CI 在没有签名 Secrets 时可运行单元测试和生成调试 APK，不会尝试使用空签名或向上游 Discord 发送通知。发布签名版需要仓库拥有者配置自己的签名。
+
+- **外观默认值**：新安装默认关闭 Use Material 3 Expressive，保留开关及已有用户的设置。
 
 ## 使用条件
 
