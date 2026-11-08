@@ -56,9 +56,9 @@ jobs:
       - name: Unit tests
         run: ./gradlew testFossDebugUnitTest
         working-directory: android
-      - name: Build signed APKs and root-module ZIPs
+      - name: Build signed installation APK
         if: steps.signing.outputs.signed == 'true'
-        run: ./gradlew packageReleaseArtifacts
+        run: ./gradlew assembleFossRelease
         working-directory: android
       - name: Build debug APK without release secrets
         if: steps.signing.outputs.signed != 'true'
@@ -68,11 +68,16 @@ jobs:
         id: version
         run: echo "version=$(sed -n 's/val appVersionName = "\(.*\)"/\1/p' android/app/build.gradle.kts)" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@v4
+        if: steps.signing.outputs.signed == 'true'
         with:
           name: librepods-android-${{ steps.version.outputs.version }}
-          path: |
-            release/*
-            android/app/build/outputs/apk/foss/debug/*.apk
+          path: android/app/build/outputs/apk/foss/release/*-release.apk
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: steps.signing.outputs.signed != 'true'
+        with:
+          name: ci-debug-test-build
+          path: android/app/build/outputs/apk/foss/debug/*.apk
           if-no-files-found: error
       - uses: actions/upload-artifact@v4
         if: always()
@@ -99,4 +104,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ needs.build.outputs.version }}
         run: |
-          gh release create "v$VERSION" artifacts/release/* --title "LibrePods $VERSION (community build)" --notes-file docs/release-notes-rc1.md
+          apk=$(find artifacts -type f -name '*-release.apk' -print -quit)
+          test -n "$apk"
+          install_name="LibrePods-FOSS-v$VERSION-release.apk"
+          cp "$apk" "$install_name"
+          gh release create "v$VERSION" "$install_name" --title "LibrePods $VERSION (community build)" --notes-file docs/release-notes-rc1.md

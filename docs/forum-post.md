@@ -13,10 +13,7 @@
 
 [GitHub Release：v1.0.10-RC1](https://github.com/Yu-Yuqing/librepods/releases/tag/v1.0.10-RC1)
 
-- 日常使用下载 `release.apk`。
-- 需要调试或导出日志时使用 `debug.apk`。
-- 对应 Root 模块 ZIP 为可选文件，仅使用本次系统电量同步不要求安装它。
-- 同时提供对应源码和 SHA-256 校验值。
+只需下载并安装 **LibrePods-FOSS-v1.0.10-RC1-release.apk**。GitHub 自动生成的 Source code 是源码，不用安装，也不需要为本次电量同步刷 ZIP。
 
 ## 使用前请看
 
