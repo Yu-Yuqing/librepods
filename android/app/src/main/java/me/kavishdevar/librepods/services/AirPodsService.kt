@@ -326,6 +326,40 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
         }
     }
 
+    private val phoneFirstReconnect = me.kavishdevar.librepods.utils.PhoneFirstReconnect()
+    private var phoneFirstReconnectJob: Job? = null
+
+    @SuppressLint("MissingPermission")
+    private fun schedulePhoneFirstReconnect() {
+        phoneFirstReconnectJob?.cancel()
+        phoneFirstReconnect.opened(SystemClock.elapsedRealtime())
+        phoneFirstReconnectJob = audioFeatureScope.launch {
+            while (phoneFirstReconnect.isActive(SystemClock.elapsedRealtime())) {
+                delay(100)
+                val status = bleManager.getMostRecentStatus() ?: continue
+                val enabled = sharedPreferences.getBoolean("phone_first_reconnect", true) && !config.bleOnlyMode
+                if (!phoneFirstReconnect.shouldAttempt(
+                        SystemClock.elapsedRealtime(), enabled,
+                        BluetoothConnectionManager.aacpSocket?.isConnected == true,
+                        status.lidOpen, status.isLeftInEar || status.isRightInEar,
+                        status.isLeftCharging && status.isRightCharging
+                    )) continue
+                val adapter = getSystemService(BluetoothManager::class.java).adapter
+                if (adapter?.isEnabled != true) break
+                val saved = adapter.bondedDevices.find { it.address.equals(macAddress, ignoreCase = true) }
+                    ?: break
+                Log.i("AirPodsConnectionTrace", "event=phone_first_reconnect remoteState=${status.connectionState}")
+                // Start the system audio profiles immediately; they establish the
+                // same ACL link and need not wait for the proprietary control channel.
+                connectAudio(this@AirPodsService, saved)
+                val deadline = phoneFirstReconnect.deadlineMs()
+                withContext(Dispatchers.IO) {
+                    connectToSocket(adapter, saved, automaticDeadlineMs = deadline)
+                }
+            }
+        }
+    }
+
     private val bleStatusListener = object : BLEManager.AirPodsStatusListener {
         @SuppressLint("NewApi")
         override fun onDeviceStatusChanged(
@@ -370,6 +404,7 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
             lidOpen: Boolean,
         ) {
             if (lidOpen) {
+                schedulePhoneFirstReconnect()
                 Log.d(TAG, "Lid opened")
                 showPopup(
                     this@AirPodsService,
@@ -3179,12 +3214,14 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
     @Synchronized
     @SuppressLint("MissingPermission", "UnspecifiedRegisterReceiverFlag")
     fun connectToSocket(
-        adapter: BluetoothAdapter, device: BluetoothDevice, manual: Boolean = false
+        adapter: BluetoothAdapter, device: BluetoothDevice, manual: Boolean = false,
+        automaticDeadlineMs: Long? = null
     ) {
         if (BluetoothConnectionManager.aacpSocket?.isConnected == true) {
             Log.d(TAG, "AACP socket is already connected, skipping duplicate request")
             return
         }
+        if (automaticDeadlineMs != null && SystemClock.elapsedRealtime() >= automaticDeadlineMs) return
         Log.d(TAG, "<LogCollector:Start> Connecting to socket")
         val uuid: ParcelUuid = ParcelUuid.fromString("74ec2172-0bad-4d01-8f77-997b2be0722a")
 //        if (!isConnectedLocally) {
@@ -3192,15 +3229,28 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
             createBluetoothSocket(adapter, device, uuid, 4097)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to create BluetoothSocket: ${e.message}")
-            showSocketConnectionFailureNotification("Failed to create Bluetooth socket: ${e.localizedMessage}")
+            if (automaticDeadlineMs == null) showSocketConnectionFailureNotification("Failed to create Bluetooth socket: ${e.localizedMessage}")
             return
         }
 
+        // Coroutine timeouts alone cannot interrupt BluetoothSocket.connect(). Closing
+        // the pending socket bounds the automatic attempt without touching live links.
+        val automaticTimeout = automaticDeadlineMs?.let { deadline ->
+            audioFeatureScope.launch(Dispatchers.IO) {
+                delay(minOf(1_800L, (deadline - SystemClock.elapsedRealtime()).coerceAtLeast(1L)))
+                if (!socket.isConnected) runCatching { socket.close() }
+            }
+        }
         try {
             runBlocking {
                 withTimeout(5000.milliseconds) {
                     try {
                         socket.connect()
+                        if (automaticDeadlineMs != null && SystemClock.elapsedRealtime() >= automaticDeadlineMs) {
+                            socket.close()
+                            throw java.io.IOException("Automatic reconnect window expired")
+                        }
+                        automaticTimeout?.cancel()
                         this@AirPodsService.device = device
                         val hasCachedModel = device.address.equals(
                             sharedPreferences.getString("airpods_model_address", ""),
@@ -3283,7 +3333,7 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
                                 "Couldn't connect to socket: ${e.localizedMessage}"
                             )
                         } else {
-                            showSocketConnectionFailureNotification("Couldn't connect to socket: ${e.localizedMessage}")
+                            if (automaticDeadlineMs == null) showSocketConnectionFailureNotification("Couldn't connect to socket: ${e.localizedMessage}")
                         }
                         return@withTimeout
 //                            throw e // lol how did i not catch this before... gonna comment this line instead of removing to preserve history
@@ -3297,7 +3347,7 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
                         "Couldn't connect to socket: timeout."
                     )
                 } else {
-                    showSocketConnectionFailureNotification("Couldn't connect to socket: Timeout")
+                    if (automaticDeadlineMs == null) showSocketConnectionFailureNotification("Couldn't connect to socket: Timeout")
                 }
                 return
             }
@@ -3441,10 +3491,14 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
                 reason = "AACP connection failed",
                 sendStop = false
             )
-            showSocketConnectionFailureNotification("Failed to establish connection: ${e.localizedMessage}")
+            if (automaticDeadlineMs == null) showSocketConnectionFailureNotification("Failed to establish connection: ${e.localizedMessage}")
 //                isConnectedLocally = false
             this@AirPodsService.device = device
             updateNotificationContent(false)
+        } finally {
+            automaticTimeout?.cancel()
+            if (!socket.isConnected) runCatching { socket.close() }
+
         }
 //        } else {
 //            Log.d(TAG, "Already connected locally, skipping BluetoothConnectionManager.aacpSocket? connection (isConnectedLocally = $isConnectedLocally, BluetoothConnectionManager.aacpSocket?.isConnected = ${this::BluetoothConnectionManager.aacpSocket?.isInitialized && BluetoothConnectionManager.aacpSocket?.isConnected})")
@@ -4216,6 +4270,8 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
 
     @SuppressLint("MissingPermission")
     override fun onDestroy() {
+        phoneFirstReconnect.stop()
+        phoneFirstReconnectJob?.cancel()
         me.kavishdevar.librepods.utils.ProcessLifecycleTrace.record("airpods_service_destroy", "blocked=$blockedAtCreation")
         if (blockedAtCreation) {
             heartRateProbeScope.cancel()

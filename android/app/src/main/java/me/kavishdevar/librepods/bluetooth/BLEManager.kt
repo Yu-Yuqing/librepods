@@ -61,8 +61,13 @@ class BLEManager(private val context: Context) {
         val connectionState: String = "Unknown"
     )
 
+    private var latestProcessedStatus: AirPodsStatus? = null
+
     fun getMostRecentStatus(): AirPodsStatus? {
-        return deviceStatusMap.values.maxByOrNull { it.lastSeen }
+        // A batch can contain the old and new private addresses in the same
+        // millisecond. Preserve processing order instead of breaking ties by map order.
+        return latestProcessedStatus?.takeIf { deviceStatusMap[it.address] === it }
+            ?: deviceStatusMap.values.maxByOrNull { it.lastSeen }
     }
 
     interface AirPodsStatusListener {
@@ -271,6 +276,7 @@ class BLEManager(private val context: Context) {
 
             val previousStatus = deviceStatusMap[address]
             deviceStatusMap[address] = parsedStatus
+            latestProcessedStatus = parsedStatus
 
             airPodsStatusListener?.let { listener ->
                 if (previousStatus == null) {

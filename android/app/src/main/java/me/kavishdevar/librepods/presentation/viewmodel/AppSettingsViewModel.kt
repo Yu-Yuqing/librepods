@@ -25,6 +25,7 @@ data class AppSettingsUiState(
     val conversationalAwarenessPauseMusicEnabled: Boolean = false,
     val relativeConversationalAwarenessVolumeEnabled: Boolean = true,
     val disconnectWhenNotWearing: Boolean = false,
+    val phoneFirstReconnect: Boolean = true,
     val takeoverWhenDisconnected: Boolean = false,
     val takeoverWhenIdle: Boolean = false,
     val takeoverWhenMusic: Boolean = false,
@@ -161,6 +162,7 @@ class AppSettingsViewModel(application: Application) : AndroidViewModel(applicat
                 conversationalAwarenessPauseMusicEnabled = sharedPreferences.getBoolean("conversational_awareness_pause_music", false),
                 relativeConversationalAwarenessVolumeEnabled = sharedPreferences.getBoolean("relative_conversational_awareness_volume", true),
                 disconnectWhenNotWearing = sharedPreferences.getBoolean("disconnect_when_not_wearing", false),
+                phoneFirstReconnect = sharedPreferences.getBoolean("phone_first_reconnect", true),
                 takeoverWhenDisconnected = sharedPreferences.getBoolean("takeover_when_disconnected", false),
                 takeoverWhenIdle = sharedPreferences.getBoolean("takeover_when_idle", false),
                 takeoverWhenMusic = sharedPreferences.getBoolean("takeover_when_music", false),
@@ -225,6 +227,11 @@ class AppSettingsViewModel(application: Application) : AndroidViewModel(applicat
     fun setDisconnectWhenNotWearing(enabled: Boolean) {
         sharedPreferences.edit { putBoolean("disconnect_when_not_wearing", enabled) }
         _uiState.update { it.copy(disconnectWhenNotWearing = enabled) }
+    }
+
+    fun setPhoneFirstReconnect(enabled: Boolean) {
+        sharedPreferences.edit { putBoolean("phone_first_reconnect", enabled) }
+        _uiState.update { it.copy(phoneFirstReconnect = enabled) }
     }
 
     fun setTakeoverWhenDisconnected(enabled: Boolean) {

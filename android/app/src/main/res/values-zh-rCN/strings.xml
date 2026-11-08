@@ -309,4 +309,6 @@
     <string name="eq_low">低频</string>
     <string name="eq_mid">中频</string>
     <string name="eq_high">高频</string>
+    <string name="phone_first_reconnect">开盖后优先连接手机</string>
+    <string name="phone_first_reconnect_description">开盖后主动连接手机，即使其他设备已先连接。最多在 5 秒内重试，不强制抢占其他设备的音频。</string>
 </resources>

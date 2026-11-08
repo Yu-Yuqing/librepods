@@ -264,4 +264,6 @@
     <string name="log_capture_failed">日誌擷取失敗：%1$s</string>
     <string name="log_capture_stopping">正在儲存…</string>
     <string name="log_capture_stop">停止擷取</string>
+    <string name="phone_first_reconnect">開蓋後優先連接手機</string>
+    <string name="phone_first_reconnect_description">開蓋後主動連接手機，即使其他裝置已先連接。最多在 5 秒內重試，不強制搶佔其他裝置的音訊。</string>
 </resources>

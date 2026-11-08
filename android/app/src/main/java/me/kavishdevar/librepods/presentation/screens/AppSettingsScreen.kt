@@ -380,6 +380,14 @@ fun AppSettingsScreen(
                 )
             }
 
+            StyledToggle(
+                label = stringResource(R.string.phone_first_reconnect),
+                description = stringResource(R.string.phone_first_reconnect_description),
+                checked = state.phoneFirstReconnect,
+                onCheckedChange = viewModel::setPhoneFirstReconnect
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+
             StyledList(title = stringResource(R.string.takeover_airpods_state)) {
                 StyledToggle(
                     label = stringResource(R.string.takeover_disconnected),

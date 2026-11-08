@@ -329,4 +329,6 @@
     <string name="eq_low">Low</string>
     <string name="eq_mid">Mid</string>
     <string name="eq_high">High</string>
+    <string name="phone_first_reconnect">Prefer this phone when opening the case</string>
+    <string name="phone_first_reconnect_description">Automatically reconnect this phone after opening the case, even if another device connects first. Retries are limited to 5 seconds and do not force audio takeover.</string>
 </resources>
