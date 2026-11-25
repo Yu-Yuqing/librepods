@@ -19,7 +19,6 @@
 package me.kavishdevar.librepods.presentation.components
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -27,6 +26,7 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -42,7 +42,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -61,8 +60,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.TextStyle
@@ -137,15 +134,13 @@ fun StyledScaffold(
                                 }
                             },
                             title = {
-                                Crossfade(targetState = title) {
-                                    Text(
-                                        text = it,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                        modifier = Modifier.padding(start = if (showBackButton) 8.dp else 12.dp, end = 12.dp),
-                                        style = MaterialTheme.typography.titleSmall
-                                    )
-                                }
+                                Text(
+                                    text = title,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.padding(start = if (showBackButton) 8.dp else 12.dp, end = 12.dp),
+                                    style = MaterialTheme.typography.titleSmall
+                                )
                             },
                             actions = {
                                 actionButtons.forEach { actionButton ->
@@ -162,7 +157,6 @@ fun StyledScaffold(
                     modifier = modifier
                         .then(if (visible) Modifier.padding(paddingValues) else Modifier)
                         .fillMaxSize()
-                        .hazeSource(hazeState)
                 ) {
                     content()
                 }
@@ -175,16 +169,6 @@ fun StyledScaffold(
                 else WindowInsets.systemBars,
                 containerColor = MaterialTheme.colorScheme.surfaceContainer,
                 snackbarHost = { SnackbarHost(snackbarHostState) },
-                modifier = Modifier
-                    .then(
-                        if (!isDarkTheme) Modifier.shadow(
-                            elevation = 36.dp,
-                            shape = RoundedCornerShape(52.dp),
-                            ambientColor = Color.Black,
-                            spotColor = Color.Black
-                        ) else Modifier
-                    )
-                    .clip(RoundedCornerShape(52.dp))
             ) { paddingValues ->
                 val topPadding = paddingValues.calculateTopPadding()
                 val startPadding = paddingValues.calculateLeftPadding(LocalLayoutDirection.current)
@@ -233,10 +217,11 @@ fun StyledScaffold(
                             .zIndex(2f)
                             .height(64.dp + topPadding)
                             .fillMaxWidth()
-                            .layerBackdrop(backdrop)
-                    ){
+                            .then(if (showBackButton || actionButtons.isNotEmpty()) Modifier.layerBackdrop(backdrop) else Modifier)
+                    ) {
                         Box(
-                            modifier = Modifier.hazeEffect(
+                            modifier = if (!showBackButton && actionButtons.isEmpty()) Modifier.background(bgColor)
+                            else Modifier.hazeEffect(
                                 state = hazeState,
                             ) {
                                 backgroundColor = bgColor
@@ -253,19 +238,17 @@ fun StyledScaffold(
 
                             Column(modifier = Modifier.fillMaxSize()) {
                                 Spacer(modifier = Modifier.height(topPadding + 12.dp))
-                                Crossfade(targetState = title) {
-                                    Text(
-                                        text = it,
-                                        style = TextStyle(
-                                            fontSize = 20.sp,
-                                            fontWeight = FontWeight.SemiBold,
-                                            color = if (isDarkTheme) Color.White else Color.Black,
-                                            fontFamily = FontFamily(Font(R.font.sf_pro))
-                                        ),
-                                        modifier = Modifier.fillMaxWidth(),
-                                        textAlign = TextAlign.Center
-                                    )
-                                }
+                                Text(
+                                    text = title,
+                                    style = TextStyle(
+                                        fontSize = 20.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = if (isDarkTheme) Color.White else Color.Black,
+                                        fontFamily = FontFamily(Font(R.font.sf_pro))
+                                    ),
+                                    modifier = Modifier.fillMaxWidth(),
+                                    textAlign = TextAlign.Center
+                                )
                             }
                         }
                     }
@@ -294,7 +277,7 @@ fun StyledScaffold(
 
                     Box(
                         modifier = modifier
-                            .hazeSource(hazeState)
+                            .then(if (showBackButton || actionButtons.isNotEmpty()) Modifier.hazeSource(hazeState) else Modifier)
                             .fillMaxSize()
                     ) {
                         content()

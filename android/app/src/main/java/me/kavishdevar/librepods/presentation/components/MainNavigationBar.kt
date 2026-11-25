@@ -1,13 +1,15 @@
 package me.kavishdevar.librepods.presentation.components
 
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.semantics.Role
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -15,11 +17,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.path
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import me.kavishdevar.librepods.R
-import me.kavishdevar.librepods.presentation.theme.DesignSystem
-import me.kavishdevar.librepods.presentation.theme.LocalDesignSystem
 
 private val headphonesIcon = ImageVector.Builder("Headphones", 24.dp, 24.dp, 24f, 24f).apply {
     path(fill = SolidColor(Color.Black)) {
@@ -54,25 +56,32 @@ private val statisticsIcon = ImageVector.Builder("Statistics", 24.dp, 24.dp, 24f
 
 @Composable
 fun MainNavigationBar(selectedIndex: Int, onSelect: (Int) -> Unit) {
-    val apple = LocalDesignSystem.current == DesignSystem.Apple
     val labels = listOf(R.string.nav_devices, R.string.settings, R.string.wear_statistics)
     val icons = listOf(headphonesIcon, Icons.Outlined.Settings, statisticsIcon)
-    NavigationBar(
-        containerColor = MaterialTheme.colorScheme.surface,
-        tonalElevation = if (apple) 0.dp else 3.dp,
-    ) {
-        labels.forEachIndexed { index, label ->
-            NavigationBarItem(
-                selected = selectedIndex == index,
-                onClick = { onSelect(index) },
-                icon = { Icon(icons[index], null, Modifier.size(24.dp)) },
-                label = { Text(stringResource(label), style = MaterialTheme.typography.labelSmall) },
-                colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = MaterialTheme.colorScheme.primary,
-                    selectedTextColor = MaterialTheme.colorScheme.primary,
-                    indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = if (apple) 0.10f else 0.16f),
-                ),
-            )
+    val colors = MaterialTheme.colorScheme
+    val labelStyle = MaterialTheme.typography.labelSmall
+    val itemHeight = with(LocalDensity.current) { maxOf(52.dp, 31.dp + labelStyle.lineHeight.toDp()) }
+    Surface(color = colors.surface) {
+        Row(
+            Modifier.fillMaxWidth().windowInsetsPadding(WindowInsets.safeDrawing.only(
+                WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal
+            )).selectableGroup(),
+        ) {
+            labels.forEachIndexed { index, label ->
+                val selected = index == selectedIndex
+                val tint = if (selected) colors.primary else colors.onSurfaceVariant
+                Column(
+                    Modifier.weight(1f).height(itemHeight)
+                        .selectable(selected, role = Role.Tab) { if (!selected) onSelect(index) }
+                        .padding(vertical = 4.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterVertically),
+                ) {
+                    Icon(icons[index], null, Modifier.size(21.dp), tint = tint)
+                    Text(stringResource(label), color = tint, style = labelStyle, maxLines = 1,
+                        overflow = TextOverflow.Ellipsis)
+                }
+            }
         }
     }
 }

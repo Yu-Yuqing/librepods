@@ -1,7 +1,7 @@
-> **社区候选版：1.0.10-RC3（开发中）**
+> **社区候选版：1.0.10-RC4**
 >
-> 基于 beidaoc v1.0.10，新增“设备 / 设置 / 统计”底部导航和本地佩戴统计，保留开盖优先连接手机等已有功能。
-> [修改内容、统计口径与构建说明](docs/release-notes-rc3.md)。覆盖更新需要沿用原安装包签名，安装前请阅读说明。
+> 本版调整了底栏高度和标签切换效果。佩戴时长图增加纵轴，点选柱子可原地查看具体时长。
+> [本版更新说明](docs/release-notes-rc4.md)。覆盖更新需要沿用原安装包签名，安装前请阅读说明。
 
 > [!WARNING]
 > librepods.org is not an official website of the LibrePods project. It inaccurately claims to be the official website of the project by claiming copyrights and using the LibrePods logo in the footer. And at the same time, they say that the project is not affiliated with the LibrePods project or its developers.

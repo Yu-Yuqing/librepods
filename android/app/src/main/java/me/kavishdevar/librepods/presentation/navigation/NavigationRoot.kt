@@ -19,6 +19,8 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -55,15 +57,20 @@ fun NavigationRoot(
         selectedTab = 0
     }
 
+    val tabState = rememberSaveableStateHolder()
     val currentScreen = backStack.last()
 
-    val state by airPodsViewModel.uiState.collectAsState()
+    val deviceState = airPodsViewModel.uiState.collectAsState()
+    val deviceTitle by remember(deviceState) { derivedStateOf {
+        deviceState.value.run { if (isLocallyConnected) deviceName else null }
+    } }
+    val trackingActive by remember(deviceState) { derivedStateOf { deviceState.value.headTrackingActive } }
 
     val m3eEnabled = LocalDesignSystem.current == DesignSystem.Material
 
     val title = when (currentScreen) {
         Screen.Onboarding -> ""
-        Screen.AirPodsSettings -> if (state.isLocallyConnected) state.deviceName else stringResource(R.string.app_name)
+        Screen.AirPodsSettings -> deviceTitle ?: stringResource(R.string.app_name)
         Screen.Accessibility -> stringResource(R.string.accessibility)
         Screen.AdaptiveStrength -> stringResource(R.string.customize_adaptive_audio)
         Screen.AppSettings -> stringResource(R.string.settings)
@@ -91,7 +98,7 @@ fun NavigationRoot(
             { scaffoldBackdrop ->
                 if (m3eEnabled) {
                     FilledTonalIconToggleButton(
-                        checked = state.headTrackingActive,
+                        checked = trackingActive,
                         onCheckedChange = { if (it) airPodsViewModel.startHeadTracking() else airPodsViewModel.stopHeadTracking() },
                         modifier = Modifier
                             .minimumInteractiveComponentSize()
@@ -99,7 +106,7 @@ fun NavigationRoot(
                         shape = IconButtonDefaults.mediumRoundShape
                     ) {
                         Icon(
-                            imageVector = if (state.headTrackingActive) MaterialIcons.pause else Icons.Default.PlayArrow,
+                            imageVector = if (trackingActive) MaterialIcons.pause else Icons.Default.PlayArrow,
                             contentDescription = "Play/Pause",
                             modifier = Modifier.size(IconButtonDefaults.mediumIconSize)
                         )
@@ -107,7 +114,7 @@ fun NavigationRoot(
                 } else {
                     StyledIconButton(
                         onClick = {
-                            if (!state.headTrackingActive) {
+                            if (!trackingActive) {
                                 airPodsViewModel.startHeadTracking()
                                 Log.d("HeadTrackingScreen", "Head tracking started")
                             } else {
@@ -115,7 +122,7 @@ fun NavigationRoot(
                                 Log.d("HeadTrackingScreen", "Head tracking stopped")
                             }
                         },
-                        icon = if (state.headTrackingActive) "􀊅" else "􀊃",
+                        icon = if (trackingActive) "􀊅" else "􀊃",
                         backdrop = scaffoldBackdrop
                     )
                 }
@@ -134,14 +141,17 @@ fun NavigationRoot(
                 actionButtons = actionButtons,
                 hasBottomNavigation = !onboarding,
             ) {
-                AppNavGraph(
-                    onboardingComplete = {
-                        onboardingComplete()
-                        onboarding = false
-                    },
-                    backStack = backStack,
-                    airPodsViewModel = airPodsViewModel,
-                )
+                // Each tab owns its NavDisplay. Tab changes never run a detail-page slide.
+                tabState.SaveableStateProvider(if (onboarding) -1 else selectedTab) {
+                    AppNavGraph(
+                        onboardingComplete = {
+                            onboardingComplete()
+                            onboarding = false
+                        },
+                        backStack = backStack,
+                        airPodsViewModel = airPodsViewModel,
+                    )
+                }
             }
         }
         if (!onboarding) MainNavigationBar(selectedTab) { selectedTab = it }
