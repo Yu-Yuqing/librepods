@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="nav_devices">Devices</string>
+    <string name="wear_statistics">Statistics</string>
+    <string name="wear_period_day">Day</string>
+    <string name="wear_period_week">Week</string>
+    <string name="wear_period_month">Month</string>
+    <string name="wear_previous_period">Previous period</string>
+    <string name="wear_next_period">Next period</string>
+    <string name="wear_return_current">Back to current period</string>
+    <string name="wear_loading">Loading…</string>
+    <string name="wear_load_error">Could not load statistics. Retrying…</string>
+    <string name="wear_total_day">Daily wearing time</string>
+    <string name="wear_total_week">Weekly wearing time</string>
+    <string name="wear_total_month">Monthly wearing time</string>
+    <string name="wear_current_session">Currently wearing · %1$s</string>
+    <string name="wear_not_wearing">No active wearing session</string>
+    <string name="wear_session_count">Wearing sessions</string>
+    <string name="wear_count_value">%1$d sessions</string>
+    <string name="wear_average_session">Average session</string>
+    <string name="wear_longest_session">Longest session</string>
+    <string name="wear_duration_chart">Wearing time</string>
+    <string name="wear_chart_description">%1$s: %2$s</string>
+    <string name="wear_daily_details">Daily details · tap a day</string>
+    <string name="wear_sessions">Sessions</string>
+    <string name="wear_ongoing">Now</string>
+    <string name="wear_continued_session">Only time within this day is shown</string>
+    <string name="wear_empty_title">No wearing records in this period</string>
+    <string name="wear_empty_description">Records begin when LibrePods detects either AirPod in your ear. Keep its background service running; music does not need to be playing. Earlier history cannot be recovered.</string>
+    <string name="wear_recording_note">Stored only on this phone. Either bud in ear starts a session; both out or a lost connection ends it. In BLE-only mode, verified nearby signals are used until they expire. Time is split at local midnight. Each period counts every overlapping session once; average and longest use only the portion within that period. Weeks start on Monday. Interrupted tracking ends at the last checkpoint.</string>
+    <string name="wear_duration_hours_minutes">%1$d h %2$d min</string>
+    <string name="wear_duration_minutes">%1$d min</string>
+    <string name="wear_duration_seconds">%1$d s</string>
+</resources>

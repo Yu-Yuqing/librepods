@@ -1,11 +1,13 @@
 package me.kavishdevar.librepods.presentation.navigation
 
 import android.util.Log
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.FilledTonalIconToggleButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
@@ -14,7 +16,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.kyant.backdrop.backdrops.LayerBackdrop
@@ -22,6 +28,7 @@ import me.kavishdevar.librepods.R
 import me.kavishdevar.librepods.presentation.MaterialIcons
 import me.kavishdevar.librepods.presentation.components.StyledIconButton
 import me.kavishdevar.librepods.presentation.components.StyledScaffold
+import me.kavishdevar.librepods.presentation.components.MainNavigationBar
 import me.kavishdevar.librepods.presentation.theme.DesignSystem
 import me.kavishdevar.librepods.presentation.theme.LocalDesignSystem
 import me.kavishdevar.librepods.presentation.viewmodel.AirPodsViewModel
@@ -32,13 +39,20 @@ fun NavigationRoot(
     onboardingComplete: () -> Unit = {},
     airPodsViewModel: AirPodsViewModel
 ) {
-    val backStack = remember {
-        mutableStateListOf(
-            when {
-                showOnboarding -> Screen.Onboarding
-                else -> Screen.AirPodsSettings
-            }
+    var selectedTab by rememberSaveable { mutableIntStateOf(0) }
+    var onboarding by rememberSaveable { mutableStateOf(showOnboarding) }
+    val tabBackStacks = remember {
+        listOf(
+            mutableStateListOf<Screen>(Screen.AirPodsSettings),
+            mutableStateListOf<Screen>(Screen.AppSettings),
+            mutableStateListOf<Screen>(Screen.WearStatistics),
         )
+    }
+    val onboardingStack = remember { mutableStateListOf<Screen>(Screen.Onboarding) }
+    val backStack = if (onboarding) onboardingStack else tabBackStacks[selectedTab]
+
+    BackHandler(enabled = !onboarding && backStack.size == 1 && selectedTab != 0) {
+        selectedTab = 0
     }
 
     val currentScreen = backStack.last()
@@ -53,6 +67,7 @@ fun NavigationRoot(
         Screen.Accessibility -> stringResource(R.string.accessibility)
         Screen.AdaptiveStrength -> stringResource(R.string.customize_adaptive_audio)
         Screen.AppSettings -> stringResource(R.string.settings)
+        Screen.WearStatistics -> stringResource(R.string.wear_statistics)
 //        Screen.CameraControl -> stringResource(R.string.camera_control)
         Screen.Equalizer -> stringResource(R.string.equalizer)
         Screen.HeadTracking -> stringResource(R.string.head_tracking)
@@ -71,33 +86,7 @@ fun NavigationRoot(
         Screen.MicrophoneSettings -> stringResource(R.string.microphone_mode)
     }
 
-    // is this a bad idea? probably. I can't think of a better way without having to pass around a shouldShowBackButton to each screen to pass to each scaffold
     val actionButtons = when (currentScreen) {
-        Screen.AirPodsSettings -> listOf<@Composable (backdrop: LayerBackdrop) -> Unit>(
-                { scaffoldBackdrop ->
-                    if (m3eEnabled) {
-                        FilledTonalIconButton(
-                            onClick = { backStack.add(Screen.AppSettings) },
-                            modifier = Modifier
-                                .minimumInteractiveComponentSize()
-                                .size(IconButtonDefaults.mediumContainerSize(IconButtonDefaults.IconButtonWidthOption.Uniform)),
-
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.Settings,
-                                contentDescription = "settings",
-                                modifier = Modifier.size(IconButtonDefaults.mediumIconSize)
-                            )
-                        }
-                    } else {
-                        StyledIconButton(
-                            onClick = { backStack.add(Screen.AppSettings) },
-                            icon = "􀍟",
-                            backdrop = scaffoldBackdrop
-                        )
-                    }
-                }
-            )
         Screen.HeadTracking -> listOf<@Composable (backdrop: LayerBackdrop) -> Unit>(
             { scaffoldBackdrop ->
                 if (m3eEnabled) {
@@ -135,17 +124,26 @@ fun NavigationRoot(
         else -> listOf()
     }
 
-    StyledScaffold(
-        visible = currentScreen.showTopBar,
-        title = title,
-        showBackButton = backStack.size > 1,
-        onNavigateBack = { backStack.removeAt(backStack.lastIndex) },
-        actionButtons = actionButtons
-    ) {
-        AppNavGraph(
-            onboardingComplete = onboardingComplete,
-            backStack = backStack,
-            airPodsViewModel = airPodsViewModel,
-        )
+    Column(Modifier.fillMaxSize()) {
+        Box(Modifier.weight(1f)) {
+            StyledScaffold(
+                visible = currentScreen.showTopBar,
+                title = title,
+                showBackButton = backStack.size > 1,
+                onNavigateBack = { backStack.removeAt(backStack.lastIndex) },
+                actionButtons = actionButtons,
+                hasBottomNavigation = !onboarding,
+            ) {
+                AppNavGraph(
+                    onboardingComplete = {
+                        onboardingComplete()
+                        onboarding = false
+                    },
+                    backStack = backStack,
+                    airPodsViewModel = airPodsViewModel,
+                )
+            }
+        }
+        if (!onboarding) MainNavigationBar(selectedTab) { selectedTab = it }
     }
 }

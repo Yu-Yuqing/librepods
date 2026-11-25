@@ -32,6 +32,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -91,6 +95,7 @@ fun StyledScaffold(
     onNavigateBack: () -> Unit = {},
     actionButtons: List<@Composable (backdrop: LayerBackdrop) -> Unit> = emptyList(),
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
+    hasBottomNavigation: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val isDarkTheme = isSystemInDarkTheme()
@@ -99,6 +104,9 @@ fun StyledScaffold(
     when (LocalDesignSystem.current) {
         DesignSystem.Material -> {
             Scaffold(
+                contentWindowInsets = if (hasBottomNavigation)
+                    WindowInsets.systemBars.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
+                else WindowInsets.systemBars,
                 containerColor = MaterialTheme.colorScheme.surfaceContainer,
                 snackbarHost = { SnackbarHost(snackbarHostState) },
                 topBar = {
@@ -162,6 +170,9 @@ fun StyledScaffold(
         }
         DesignSystem.Apple -> {
             Scaffold(
+                contentWindowInsets = if (hasBottomNavigation)
+                    WindowInsets.systemBars.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
+                else WindowInsets.systemBars,
                 containerColor = MaterialTheme.colorScheme.surfaceContainer,
                 snackbarHost = { SnackbarHost(snackbarHostState) },
                 modifier = Modifier

@@ -84,6 +84,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.sync.Mutex
@@ -329,6 +330,19 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
     private val phoneFirstReconnect = me.kavishdevar.librepods.utils.PhoneFirstReconnect()
     private var phoneFirstReconnectJob: Job? = null
 
+    private val wearStatistics by lazy {
+        me.kavishdevar.librepods.data.wear.WearStatisticsRepository.get(this)
+    }
+    @Volatile private var lastBleWearSignalElapsed = 0L
+
+    private fun recordBleWearState(status: BLEManager.AirPodsStatus) {
+        // BLEManager only delivers advertisements verified against the saved AirPods IRK.
+        // The control channel is authoritative whenever it is connected.
+        if (!config.bleOnlyMode || BluetoothConnectionManager.aacpSocket?.isConnected == true) return
+        lastBleWearSignalElapsed = SystemClock.elapsedRealtime()
+        wearStatistics.earState(status.isLeftInEar || status.isRightInEar)
+    }
+
     @SuppressLint("MissingPermission")
     private fun schedulePhoneFirstReconnect() {
         phoneFirstReconnectJob?.cancel()
@@ -365,6 +379,7 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
         override fun onDeviceStatusChanged(
             device: BLEManager.AirPodsStatus, previousStatus: BLEManager.AirPodsStatus?
         ) {
+            recordBleWearState(device)
             if (device.connectionState == "Disconnected" && BluetoothConnectionManager.aacpSocket?.isConnected != true) { // should never happen unless android messes up and sends us a stale broadcast
                 Log.d(TAG, "Seems no device has taken over, we will.")
                 val bluetoothManager = getSystemService(BluetoothManager::class.java)
@@ -397,6 +412,7 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
         }
 
         override fun onBroadcastFromNewAddress(device: BLEManager.AirPodsStatus) {
+            recordBleWearState(device)
             Log.d(TAG, "New address detected")
         }
 
@@ -466,6 +482,9 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
         }
 
         override fun onDeviceDisappeared() {
+            if (config.bleOnlyMode && BluetoothConnectionManager.aacpSocket?.isConnected != true) {
+                wearStatistics.stop(lastBleWearSignalElapsed)
+            }
             Log.d(TAG, "All disappeared")
             updateNotificationContent(
                 false
@@ -511,6 +530,25 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
         heartRateProbeRequested = false
         _heartRateProbeEnabled.value = false
         initializeConfig()
+
+        // Keep a bounded durable checkpoint even while the UI is closed. A dead control
+        // socket or stale BLE signal must never leave a session running indefinitely.
+        audioFeatureScope.launch {
+            while (isActive) {
+                delay(15_000)
+                if (BluetoothConnectionManager.aacpSocket?.isConnected == true) {
+                    wearStatistics.checkpoint()
+                } else if (config.bleOnlyMode && lastBleWearSignalElapsed > 0L) {
+                    if (SystemClock.elapsedRealtime() - lastBleWearSignalElapsed > 15_000) {
+                        wearStatistics.stop(lastBleWearSignalElapsed)
+                    } else {
+                        wearStatistics.checkpoint()
+                    }
+                } else {
+                    wearStatistics.stop()
+                }
+            }
+        }
 
         aacpManager = AACPManager()
         initializeAACPManagerCallback()
@@ -844,6 +882,7 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
 //                    }
 
                 } else if (intent?.action == AirPodsNotifications.AIRPODS_DISCONNECTED) {
+                    wearStatistics.stop()
                     resetHeartRateMonitoringForSession(
                         reason = "AACP disconnected",
                         sendStop = false
@@ -1045,6 +1084,7 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
                 }
 
                 if (batteryNotification.getBattery()[0].status == BatteryStatus.CHARGING && batteryNotification.getBattery()[1].status == BatteryStatus.CHARGING) {
+                    wearStatistics.earState(false)
                     disconnectAudio(this@AirPodsService, device, "both_buds_charging")
                 } else {
                     connectAudio(this@AirPodsService, device)
@@ -1498,6 +1538,10 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
     }
 
     private fun processEarDetectionChange(earDetection: ByteArray) {
+        if (earDetection.size != 8) return
+        val wearData = earDetection.takeLast(2)
+        // Recording does not depend on the automatic play/pause preference.
+        wearStatistics.earState(wearData.any { it == 0x00.toByte() })
         var inEar: Boolean
         val inEarData = listOf(
             earDetectionNotification.status[0] == 0x00.toByte(),
@@ -4279,6 +4323,7 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
             super.onDestroy()
             return
         }
+        wearStatistics.stop()
         attManager.close()
         remoteStreamingDevices.clear()
         clearPacketLogs()

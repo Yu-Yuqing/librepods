@@ -1,7 +1,7 @@
-> **社区候选版：1.0.10-RC2**
+> **社区候选版：1.0.10-RC3（开发中）**
 >
-> 基于 beidaoc v1.0.10，新增开盖后优先连接手机，保留系统蓝牙电量同步与语音助手后台/锁屏权限引导。
-> [修改内容、安装要求与构建说明](docs/release-notes-rc2.md)。本版本使用独立签名，安装前请阅读说明。
+> 基于 beidaoc v1.0.10，新增“设备 / 设置 / 统计”底部导航和本地佩戴统计，保留开盖优先连接手机等已有功能。
+> [修改内容、统计口径与构建说明](docs/release-notes-rc3.md)。覆盖更新需要沿用原安装包签名，安装前请阅读说明。
 
 > [!WARNING]
 > librepods.org is not an official website of the LibrePods project. It inaccurately claims to be the official website of the project by claiming copyrights and using the LibrePods logo in the footer. And at the same time, they say that the project is not affiliated with the LibrePods project or its developers.

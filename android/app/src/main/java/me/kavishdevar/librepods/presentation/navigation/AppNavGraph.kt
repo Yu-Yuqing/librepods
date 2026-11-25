@@ -36,6 +36,7 @@ import me.kavishdevar.librepods.presentation.screens.TransparencySettingsScreen
 import me.kavishdevar.librepods.presentation.screens.TroubleshootingScreen
 import me.kavishdevar.librepods.presentation.screens.UpdateHearingTestRoute
 import me.kavishdevar.librepods.presentation.screens.VersionScreen
+import me.kavishdevar.librepods.presentation.screens.WearStatisticsRoute
 import me.kavishdevar.librepods.presentation.screens.onboarding.OnboardingScreen
 import me.kavishdevar.librepods.presentation.theme.DesignSystem
 import me.kavishdevar.librepods.presentation.theme.LocalDesignSystem
@@ -124,6 +125,11 @@ fun AppNavGraph(
                                 navigateToTroubleshooting = { navigate(Screen.Troubleshooting) },
                                 navigateToOpenSourceLicenses = { navigate(Screen.OpenSourceLicenses) },
                             )
+                        }
+
+                    Screen.WearStatistics ->
+                        NavEntry(screen) {
+                            WearStatisticsRoute()
                         }
 
                     Screen.Troubleshooting ->
