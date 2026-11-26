@@ -238,7 +238,7 @@ internal fun WearPeriodPage(
         }
         if (report.summary.sessionCount == 0) {
             item(key = "empty") {
-                Text(stringResource(if (report.summary.totalMillis > 0) R.string.wear_no_counted_sessions else R.string.wear_empty_title),
+                Text(stringResource(R.string.wear_empty_title),
                     Modifier.fillMaxWidth().padding(16.dp),
                     textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }

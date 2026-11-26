@@ -37,9 +37,9 @@ class WearStatisticsRepository private constructor(context: Context) {
         val wall = System.currentTimeMillis()
         val elapsed = SystemClock.elapsedRealtime()
         enqueue {
-            val previousId = recorder.activeId
+            val wasWearing = recorder.isWearing
             recorder.earState(wearing, wall, elapsed)
-            previousId != recorder.activeId
+            wasWearing != recorder.isWearing
         }
     }
 
@@ -53,7 +53,7 @@ class WearStatisticsRepository private constructor(context: Context) {
 
     fun stop(elapsedMillis: Long = SystemClock.elapsedRealtime()) {
         enqueue {
-            val wasActive = recorder.activeId != null
+            val wasActive = recorder.isWearing
             recorder.stop(elapsedMillis)
             wasActive
         }
@@ -87,14 +87,12 @@ class WearStatisticsRepository private constructor(context: Context) {
         }
 
     internal suspend fun snapshot(): List<WearSession> = withContext(dispatcher) {
-        val active = recorder.currentSession(SystemClock.elapsedRealtime())
+        recorder.checkpoint(SystemClock.elapsedRealtime())
         database.read(0, Long.MAX_VALUE)
-            .map { if (active != null && it.id == active.id) active else it }
-            .filter { it.endMillis > it.startMillis }
     }
 
     internal suspend fun mergeBackup(sessions: List<WearSession>): Int = withContext(dispatcher) {
-        recorder // Close any interrupted recording before merging history.
+        recorder.checkpoint(SystemClock.elapsedRealtime())
         database.merge(sessions).also { if (it > 0) _changes.value++ }
     }
 
@@ -107,8 +105,8 @@ class WearStatisticsRepository private constructor(context: Context) {
     }
 }
 
-private class WearDatabase(context: Context) :
-    SQLiteOpenHelper(context, "wear_statistics.db", null, 1), WearSessionStorage {
+internal class WearDatabase(context: Context) :
+    SQLiteOpenHelper(context, "wear_statistics.db", null, 2), WearSessionStorage {
     override fun onCreate(db: SQLiteDatabase) {
         db.execSQL("""
             CREATE TABLE sessions (
@@ -122,12 +120,22 @@ private class WearDatabase(context: Context) :
         db.execSQL("CREATE INDEX sessions_end ON sessions(end_ms)")
     }
 
-    override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) = Unit
+    override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
+        if (oldVersion < 2) {
+            db.execSQL("DELETE FROM sessions WHERE COALESCE(end_ms, last_observed_ms) - start_ms <= ?",
+                arrayOf(MIN_WEAR_MILLIS))
+        }
+    }
 
-    override fun start(startMillis: Long): Long = writableDatabase.insertOrThrow(
+    override fun discard(id: Long) {
+        writableDatabase.delete("sessions", "_id = ? AND end_ms IS NULL", arrayOf(id.toString()))
+    }
+
+    override fun insert(startMillis: Long, endMillis: Long, finished: Boolean): Long = writableDatabase.insertOrThrow(
         "sessions", null, ContentValues().apply {
             put("start_ms", startMillis)
-            put("last_observed_ms", startMillis)
+            put("last_observed_ms", endMillis)
+            if (finished) put("end_ms", endMillis)
         }
     )
 
@@ -150,6 +158,7 @@ private class WearDatabase(context: Context) :
         db.beginTransaction()
         try {
             for (session in sessions) {
+                if (!session.countsAsWear) continue
                 // Accept a longer snapshot of the same session. Preserve local records
                 // if merging would overlap another session or touch the live recorder.
                 val overlaps = db.rawQuery(
@@ -168,8 +177,7 @@ private class WearDatabase(context: Context) :
                     }
                 }
                 if (overlaps.isEmpty()) {
-                    val id = start(session.startMillis)
-                    finish(id, session.endMillis)
+                    insert(session.startMillis, session.endMillis, finished = true)
                     changed++
                 } else {
                     val prior = overlaps.singleOrNull() ?: continue

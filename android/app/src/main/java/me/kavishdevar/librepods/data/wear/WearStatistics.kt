@@ -5,9 +5,11 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.temporal.TemporalAdjusters
 
+internal const val MIN_WEAR_MILLIS = 10_000L
+
 /** A physical wearing session: either bud in ear, until both are out or tracking stops. */
 data class WearSession(val id: Long, val startMillis: Long, val endMillis: Long) {
-    val countsAsWear: Boolean get() = endMillis - startMillis > 30_000L
+    val countsAsWear: Boolean get() = endMillis - startMillis > MIN_WEAR_MILLIS
 }
 
 enum class WearPeriod {
@@ -36,9 +38,8 @@ data class WearSummary(
     val totalMillis: Long = 0,
     val sessionCount: Int = 0,
     val longestMillis: Long = 0,
-    val countedMillis: Long = totalMillis,
 ) {
-    val averageMillis: Long get() = if (sessionCount == 0) 0 else countedMillis / sessionCount
+    val averageMillis: Long get() = if (sessionCount == 0) 0 else totalMillis / sessionCount
 }
 
 data class WearBucket(val startMillis: Long, val endMillis: Long, val summary: WearSummary)
@@ -56,20 +57,17 @@ data class WearReport(
 object WearStatistics {
     fun summarize(sessions: List<WearSession>, start: Long, end: Long): WearSummary {
         var total = 0L
-        var counted = 0L
         var count = 0
         var longest = 0L
         for (session in sessions) {
+            if (!session.countsAsWear) continue
             val duration = minOf(session.endMillis, end) - maxOf(session.startMillis, start)
             if (duration <= 0) continue
             total += duration
-            if (session.countsAsWear) {
-                counted += duration
-                count++
-                longest = maxOf(longest, duration)
-            }
+            count++
+            longest = maxOf(longest, duration)
         }
-        return WearSummary(total, count, longest, counted)
+        return WearSummary(total, count, longest)
     }
 
     fun report(
@@ -104,38 +102,52 @@ object WearStatistics {
 
 /** Persistence is supplied by SQLite in the app and an in-memory store in tests. */
 interface WearSessionStorage {
-    fun start(startMillis: Long): Long
+    fun insert(startMillis: Long, endMillis: Long, finished: Boolean): Long
+    fun discard(id: Long)
     fun checkpoint(id: Long, endMillis: Long)
     fun finish(id: Long, endMillis: Long)
 }
 
 /** All calls are serialized by the repository. Durations use the monotonic clock. */
 class WearSessionRecorder(private val storage: WearSessionStorage) {
-    var activeId: Long? = null
-        private set
+    private var savedId: Long? = null
     private var startMillis = 0L
-    private var startElapsed = 0L
+    private var startElapsed: Long? = null
+    val isWearing: Boolean get() = startElapsed != null
 
     fun earState(wearing: Boolean, wallMillis: Long, elapsedMillis: Long) {
-        if (wearing && activeId == null) {
+        if (wearing && !isWearing) {
             startMillis = wallMillis
             startElapsed = elapsedMillis
-            activeId = storage.start(startMillis)
         } else if (!wearing) {
             stop(elapsedMillis)
         }
     }
 
-    fun currentSession(elapsedMillis: Long): WearSession? = activeId?.let {
-        WearSession(it, startMillis, startMillis + (elapsedMillis - startElapsed).coerceAtLeast(0))
+    fun currentSession(elapsedMillis: Long): WearSession? {
+        val duration = elapsedMillis - (startElapsed ?: return null)
+        if (duration <= MIN_WEAR_MILLIS) return null
+        return WearSession(savedId ?: -1L, startMillis, startMillis + duration)
     }
 
     fun checkpoint(elapsedMillis: Long) {
-        currentSession(elapsedMillis)?.let { storage.checkpoint(it.id, it.endMillis) }
+        val session = currentSession(elapsedMillis) ?: return
+        val id = savedId
+        if (id == null) savedId = storage.insert(startMillis, session.endMillis, finished = false)
+        else storage.checkpoint(id, session.endMillis)
     }
 
     fun stop(elapsedMillis: Long) {
-        currentSession(elapsedMillis)?.let { storage.finish(it.id, it.endMillis) }
-        activeId = null
+        val session = currentSession(elapsedMillis)
+        val id = savedId
+        if (session != null) {
+            if (id == null) storage.insert(startMillis, session.endMillis, finished = true)
+            else storage.finish(id, session.endMillis)
+        } else if (id != null) {
+            // BLE expiry can backdate the end to before the last checkpoint.
+            storage.discard(id)
+        }
+        savedId = null
+        startElapsed = null
     }
 }
