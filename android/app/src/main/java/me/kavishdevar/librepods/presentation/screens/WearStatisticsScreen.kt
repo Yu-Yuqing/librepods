@@ -1,10 +1,22 @@
 package me.kavishdevar.librepods.presentation.screens
 
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.scrollable
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PagerDefaults
+import androidx.compose.foundation.pager.PagerState
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.width
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.IntOffset
+import kotlin.math.roundToInt
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -48,6 +60,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -73,10 +86,8 @@ import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.time.temporal.ChronoUnit
 
-internal data class DisplayedWearReport(val period: WearPeriod, val report: WearReport)
-
 internal class WearScreenModel : ViewModel() {
-    var displayed by mutableStateOf<DisplayedWearReport?>(null)
+    val reports = mutableStateMapOf<WearPeriod, WearReport>()
 }
 
 @Composable
@@ -85,83 +96,79 @@ fun WearStatisticsRoute() {
     val repository = remember(context) { WearStatisticsRepository.get(context) }
     val owner = LocalLifecycleOwner.current
     val model: WearScreenModel = viewModel()
-    var periodName by rememberSaveable { mutableStateOf(WearPeriod.DAY.name) }
-    var offset by rememberSaveable { mutableIntStateOf(0) }
-    var failed by remember { mutableStateOf(false) }
-    val selection = WearPeriod.valueOf(periodName)
-
-    LaunchedEffect(selection, offset, repository, owner) {
-        owner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
-            repository.changes.collectLatest {
-                while (isActive) {
-                    try {
-                        val zone = ZoneId.systemDefault()
-                        val date = selection.shift(LocalDate.now(zone), offset)
-                        val report = repository.report(selection, date, zone)
-                        // Replace the data and its units together, keeping the list measured while loading.
-                        model.displayed = DisplayedWearReport(selection, report)
-                        failed = false
-                    } catch (_: android.database.SQLException) {
-                        failed = true
-                    } catch (_: java.io.IOException) {
-                        failed = true
+    val day = rememberSaveable { mutableIntStateOf(0) }
+    val week = rememberSaveable { mutableIntStateOf(0) }
+    val month = rememberSaveable { mutableIntStateOf(0) }
+    WearStatisticsPager { period, goTo ->
+        val offset = when (period) {
+            WearPeriod.DAY -> day
+            WearPeriod.WEEK -> week
+            WearPeriod.MONTH -> month
+        }
+        var failed by remember { mutableStateOf(false) }
+        val shift = offset.intValue
+        LaunchedEffect(period, shift, repository, owner) {
+            owner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                repository.changes.collectLatest {
+                    while (isActive) {
+                        try {
+                            val zone = ZoneId.systemDefault()
+                            val date = period.shift(LocalDate.now(zone), shift)
+                            val report = repository.report(period, date, zone)
+                            model.reports[period] = report
+                            failed = false
+                        } catch (_: android.database.SQLException) {
+                            failed = true
+                        } catch (_: java.io.IOException) {
+                            failed = true
+                        }
+                        delay(10_000)
                     }
-                    delay(10_000)
                 }
             }
         }
+        WearPeriodPage(period, model.reports[period], shift, failed,
+            onOffset = { offset.intValue = it.coerceAtMost(0) },
+            onDay = { date ->
+                day.intValue = ChronoUnit.DAYS.between(LocalDate.now(), date).toInt().coerceAtMost(0)
+                goTo(WearPeriod.DAY)
+            })
     }
-    WearStatisticsScreen(
-        selection = selection, displayed = model.displayed, offset = offset, failed = failed,
-        onPeriod = { periodName = it.name; offset = 0 },
-        onOffset = { offset = it.coerceAtMost(0) },
-        onDay = { day ->
-            periodName = WearPeriod.DAY.name
-            offset = ChronoUnit.DAYS.between(LocalDate.now(), day).toInt().coerceAtMost(0)
-        },
-    )
 }
 
 @Composable
-internal fun WearStatisticsScreen(
-    selection: WearPeriod,
-    displayed: DisplayedWearReport?,
+internal fun WearStatisticsPager(
+    initialPeriod: WearPeriod = WearPeriod.DAY,
+    content: @Composable (WearPeriod, (WearPeriod) -> Unit) -> Unit,
+) {
+    val pager = rememberPagerState(initialPage = initialPeriod.ordinal) { WearPeriod.entries.size }
+    val scope = rememberCoroutineScope()
+    val goTo: (WearPeriod) -> Unit = { period -> scope.launch { pager.animateScrollToPage(period.ordinal) } }
+    val apple = LocalDesignSystem.current == DesignSystem.Apple
+    val top = if (apple) WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 80.dp else 16.dp
+    Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceContainer).padding(top = top)) {
+        PeriodPicker(pager, goTo)
+        HorizontalPager(state = pager, modifier = Modifier.fillMaxSize().testTag("wearPager"), beyondViewportPageCount = 1) { index ->
+            content(WearPeriod.entries[index], goTo)
+        }
+    }
+}
+
+@Composable
+internal fun WearPeriodPage(
+    period: WearPeriod,
+    report: WearReport?,
     offset: Int,
     failed: Boolean,
-    onPeriod: (WearPeriod) -> Unit,
     onOffset: (Int) -> Unit,
     onDay: (LocalDate) -> Unit,
 ) {
-    val period = displayed?.period ?: selection
-    val report = displayed?.report
-    val apple = LocalDesignSystem.current == DesignSystem.Apple
-    val topPadding = if (apple) WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 80.dp else 16.dp
     val todayLabel = stringResource(R.string.wear_return_current)
-    val selectPeriod by rememberUpdatedState(onPeriod)
-    val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
     LazyColumn(
-        Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceContainer)
-            .pointerInput(selection, rtl) {
-                var distance = 0f
-                detectHorizontalDragGestures(
-                    onDragStart = { distance = 0f },
-                    onDragEnd = {
-                        val threshold = minOf(56.dp.toPx(), size.width * 0.20f)
-                        val logical = if (rtl) -distance else distance
-                        val next = when {
-                            logical < -threshold -> selection.ordinal + 1
-                            logical > threshold -> selection.ordinal - 1
-                            else -> selection.ordinal
-                        }
-                        WearPeriod.entries.getOrNull(next)?.takeIf { it != selection }?.let(selectPeriod)
-                    },
-                    onHorizontalDrag = { _, delta -> distance += delta },
-                )
-            },
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = topPadding, bottom = 16.dp),
+        Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        item(key = "period") { PeriodPicker(selection, onPeriod) }
         item(key = "dates") {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = { onOffset(offset - 1) }) {
@@ -231,7 +238,8 @@ internal fun WearStatisticsScreen(
         }
         if (report.summary.sessionCount == 0) {
             item(key = "empty") {
-                Text(stringResource(R.string.wear_empty_title), Modifier.fillMaxWidth().padding(16.dp),
+                Text(stringResource(if (report.summary.totalMillis > 0) R.string.wear_no_counted_sessions else R.string.wear_empty_title),
+                    Modifier.fillMaxWidth().padding(16.dp),
                     textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         } else if (period == WearPeriod.DAY) {
@@ -281,28 +289,39 @@ internal fun WearStatisticsScreen(
 }
 
 @Composable
-private fun PeriodPicker(selected: WearPeriod, onSelect: (WearPeriod) -> Unit) {
-    Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp))
-            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f)).padding(4.dp).selectableGroup(),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
+private fun PeriodPicker(pager: PagerState, onSelect: (WearPeriod) -> Unit) {
+    BoxWithConstraints(
+        Modifier.padding(horizontal = 16.dp).fillMaxWidth().clip(RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f))
+            .scrollable(pager, Orientation.Horizontal,
+                reverseDirection = LocalLayoutDirection.current == LayoutDirection.Ltr,
+                flingBehavior = PagerDefaults.flingBehavior(pager))
+            .padding(4.dp),
     ) {
-        WearPeriod.entries.forEach { period ->
-            val isSelected = period == selected
-            Box(
-                Modifier.weight(1f).clip(RoundedCornerShape(12.dp))
-                    .background(if (isSelected) MaterialTheme.colorScheme.surface else androidx.compose.ui.graphics.Color.Transparent)
-                    .selectable(selected = isSelected, interactionSource = null, indication = null, role = Role.Tab) {
-                        if (!isSelected) onSelect(period)
-                    }.heightIn(min = 44.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(stringResource(when (period) {
-                    WearPeriod.DAY -> R.string.wear_period_day
-                    WearPeriod.WEEK -> R.string.wear_period_week
-                    WearPeriod.MONTH -> R.string.wear_period_month
-                }), color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontWeight = FontWeight.SemiBold)
+        val tabWidth = maxWidth / WearPeriod.entries.size
+        Box(Modifier.matchParentSize()) {
+            Box(Modifier.offset {
+                val page = pager.currentPage + pager.currentPageOffsetFraction
+                IntOffset((tabWidth.toPx() * page).roundToInt(), 0)
+            }.testTag("wearIndicator").width(tabWidth).fillMaxHeight().background(MaterialTheme.colorScheme.surface, RoundedCornerShape(12.dp)))
+        }
+        Row(Modifier.fillMaxWidth().selectableGroup()) {
+            WearPeriod.entries.forEach { period ->
+                val isSelected = period.ordinal == pager.currentPage
+                Box(
+                    Modifier.weight(1f).clip(RoundedCornerShape(12.dp))
+                        .selectable(selected = isSelected, interactionSource = null, indication = null, role = Role.Tab) {
+                            if (!isSelected) onSelect(period)
+                        }.heightIn(min = 44.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(stringResource(when (period) {
+                        WearPeriod.DAY -> R.string.wear_period_day
+                        WearPeriod.WEEK -> R.string.wear_period_week
+                        WearPeriod.MONTH -> R.string.wear_period_month
+                    }), color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = FontWeight.SemiBold)
+                }
             }
         }
     }

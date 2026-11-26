@@ -38,4 +38,5 @@
     <string name="wear_import_done">Imported or updated %1$d sessions. Skipped %2$d existing or overlapping sessions.</string>
     <string name="wear_export_error">Could not export this backup</string>
     <string name="wear_import_error">Could not import this backup. Your records have been preserved.</string>
+    <string name="wear_no_counted_sessions">No sessions longer than 30 seconds</string>
 </resources>

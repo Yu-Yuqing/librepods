@@ -25,25 +25,25 @@ import java.time.ZoneId
 class WearStatisticsUiTest {
     @get:Rule val compose = createComposeRule()
     private val monday = LocalDate.of(2024, 11, 18)
-    private fun report(period: WearPeriod): DisplayedWearReport {
+    private fun report(period: WearPeriod): WearReport {
         val zone = ZoneId.systemDefault()
         val sessions = (0..6).map { i ->
             val start = monday.plusDays(i.toLong()).atTime(9, 0).atZone(zone).toInstant().toEpochMilli()
             WearSession(i.toLong(), start, start + (10 + i) * 60_000L)
         }
-        return DisplayedWearReport(period, WearStatistics.report(sessions, period, monday, zone))
+        return WearStatistics.report(sessions, period, monday, zone)
     }
 
     @Test fun chartTouchKeepsWeeklyAndMonthlyReportsAtTheSameScrollPosition() {
-        val data = mutableStateOf(report(WearPeriod.WEEK))
+        val current = mutableStateOf(WearPeriod.WEEK)
         var openedDay: LocalDate? = null
         compose.setContent {
             CompositionLocalProvider(LocalDesignSystem provides DesignSystem.Material) {
-                WearStatisticsScreen(data.value.period, data.value, 0, false, {}, {}, { openedDay = it })
+                WearPeriodPage(current.value, report(current.value), 0, false, {}, { openedDay = it })
             }
         }
         for (period in listOf(WearPeriod.WEEK, WearPeriod.MONTH)) {
-            compose.runOnIdle { data.value = report(period) }
+            compose.runOnIdle { current.value = period }
             compose.onNodeWithText("Daily details").performScrollTo()
             val chart = compose.onNodeWithText("Wearing time")
             val before = chart.fetchSemanticsNode().positionInRoot
@@ -62,12 +62,10 @@ class WearStatisticsUiTest {
     }
 
     @Test fun horizontalSwipesSelectAdjacentPeriodsAndStopAtTheEnds() {
-        val period = mutableStateOf(WearPeriod.DAY)
         compose.setContent {
-            WearStatisticsScreen(period.value, report(period.value), 0, false,
-                { period.value = it }, {}, {})
+            WearStatisticsPager { period, _ -> WearPeriodPage(period, report(period), 0, false, {}, {}) }
         }
-        val list = compose.onNode(hasScrollAction())
+        val list = compose.onNodeWithTag("wearPager")
         for (label in listOf("Week", "Month", "Month")) {
             list.performTouchInput { swipeLeft() }
             compose.onNodeWithText(label).assertIsSelected()
@@ -76,25 +74,24 @@ class WearStatisticsUiTest {
         compose.onNodeWithText("Week").assertIsSelected()
     }
 
-    @Test fun changingPeriodKeepsTheMeasuredChartWhileTheNextReportLoads() {
-        val period = mutableStateOf(WearPeriod.DAY)
-        val data = mutableStateOf(report(WearPeriod.DAY))
+    @Test fun indicatorMovesWhileFingerIsDownAndSettlesOnTap() {
         compose.setContent {
-            CompositionLocalProvider(LocalDesignSystem provides DesignSystem.Apple) {
-                WearStatisticsScreen(period.value, data.value, 0, false, { period.value = it }, {}, {})
-            }
+            WearStatisticsPager { period, _ -> WearPeriodPage(period, report(period), 0, false, {}, {}) }
         }
-        val chart = compose.onNodeWithText("Wearing time")
-        val before = chart.fetchSemanticsNode().positionInRoot
-        compose.onNodeWithText("Week").performClick().assertIsSelected()
-        compose.onNodeWithText("Day").assertIsNotSelected()
-        compose.onNodeWithText("Daily wearing time").assertExists()
-        compose.onNodeWithText("Loading…").assertDoesNotExist()
-        compose.runOnIdle { data.value = report(period.value) }
-        compose.onNodeWithText("Weekly wearing time").assertExists()
+        val indicator = compose.onNodeWithTag("wearIndicator", useUnmergedTree = true)
+        val before = indicator.fetchSemanticsNode().boundsInRoot
+        val pager = compose.onNodeWithTag("wearPager")
+        pager.performTouchInput {
+            down(center)
+            moveBy(androidx.compose.ui.geometry.Offset(-width * 0.12f, 0f))
+            moveBy(androidx.compose.ui.geometry.Offset(-width * 0.16f, 0f))
+        }
+        val dragged = indicator.fetchSemanticsNode().boundsInRoot.left - before.left
+        assertTrue("Indicator offset during drag: $dragged", dragged > 0f && dragged < before.width)
+        pager.performTouchInput { up() }
+        compose.onNodeWithText("Month").performClick().assertIsSelected()
+        compose.onNodeWithText("Monthly wearing time").assertIsDisplayed()
         compose.onNodeWithText("Longest session").assertDoesNotExist()
-        compose.onNodeWithText("minutes").assertExists()
-        assertEquals(before, chart.fetchSemanticsNode().positionInRoot)
     }
 
     @Test fun bottomBarHasACompactTouchTargetAndSelectsOneTab() {

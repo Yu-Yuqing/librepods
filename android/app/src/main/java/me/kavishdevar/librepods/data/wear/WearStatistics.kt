@@ -6,7 +6,9 @@ import java.time.ZoneId
 import java.time.temporal.TemporalAdjusters
 
 /** A physical wearing session: either bud in ear, until both are out or tracking stops. */
-data class WearSession(val id: Long, val startMillis: Long, val endMillis: Long)
+data class WearSession(val id: Long, val startMillis: Long, val endMillis: Long) {
+    val countsAsWear: Boolean get() = endMillis - startMillis > 30_000L
+}
 
 enum class WearPeriod {
     DAY, WEEK, MONTH;
@@ -34,8 +36,9 @@ data class WearSummary(
     val totalMillis: Long = 0,
     val sessionCount: Int = 0,
     val longestMillis: Long = 0,
+    val countedMillis: Long = totalMillis,
 ) {
-    val averageMillis: Long get() = if (sessionCount == 0) 0 else totalMillis / sessionCount
+    val averageMillis: Long get() = if (sessionCount == 0) 0 else countedMillis / sessionCount
 }
 
 data class WearBucket(val startMillis: Long, val endMillis: Long, val summary: WearSummary)
@@ -52,11 +55,21 @@ data class WearReport(
 
 object WearStatistics {
     fun summarize(sessions: List<WearSession>, start: Long, end: Long): WearSummary {
-        val durations = sessions.mapNotNull { session ->
-            (minOf(session.endMillis, end) - maxOf(session.startMillis, start))
-                .takeIf { it > 0 }
+        var total = 0L
+        var counted = 0L
+        var count = 0
+        var longest = 0L
+        for (session in sessions) {
+            val duration = minOf(session.endMillis, end) - maxOf(session.startMillis, start)
+            if (duration <= 0) continue
+            total += duration
+            if (session.countsAsWear) {
+                counted += duration
+                count++
+                longest = maxOf(longest, duration)
+            }
         }
-        return WearSummary(durations.sum(), durations.size, durations.maxOrNull() ?: 0)
+        return WearSummary(total, count, longest, counted)
     }
 
     fun report(
@@ -85,7 +98,7 @@ object WearStatistics {
         }
         val overlapping = sessions.filter { it.startMillis < endMillis && it.endMillis > startMillis }
             .sortedByDescending { it.startMillis }
-        return WearReport(startDate, endDate, summarize(overlapping, startMillis, endMillis), buckets, overlapping)
+        return WearReport(startDate, endDate, summarize(overlapping, startMillis, endMillis), buckets, overlapping.filter { it.countsAsWear })
     }
 }
 

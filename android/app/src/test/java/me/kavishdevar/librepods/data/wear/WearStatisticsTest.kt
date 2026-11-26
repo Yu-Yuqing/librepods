@@ -54,6 +54,22 @@ class WearStatisticsTest {
         assertEquals(WearSummary(), WearStatistics.report(sessions, WearPeriod.DAY, LocalDate.of(2026, 11, 25), zone).summary)
     }
 
+    @Test fun `full session must exceed thirty seconds even across midnight`() {
+        val date = LocalDate.of(2026, 11, 25)
+        val midnight = date.atStartOfDay(zone).toInstant().toEpochMilli()
+        val sessions = listOf(WearSession(1, midnight - 30_000, midnight + 1),
+            WearSession(2, midnight + 1000, midnight + 31_000),
+            WearSession(3, midnight + 40_000, midnight + 41_000))
+        for (period in WearPeriod.entries) {
+            val report = WearStatistics.report(sessions, period, date, zone)
+            val counted = if (period == WearPeriod.DAY) 1L else 30_001L
+            assertEquals(1, report.summary.sessionCount)
+            assertEquals(counted, report.summary.averageMillis)
+            assertEquals(counted + 31_000, report.summary.totalMillis)
+            assertEquals(listOf(1L), report.sessions.map { it.id })
+        }
+    }
+
     @Test fun `empty history has zero average and complete calendar buckets`() {
         val report = WearStatistics.report(emptyList(), WearPeriod.MONTH, LocalDate.of(2028, 2, 10), zone)
         assertEquals(0L, report.summary.averageMillis)
