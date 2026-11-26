@@ -31,4 +31,11 @@
     <string name="wear_duration_hours_minutes">%1$d 小时 %2$d 分钟</string>
     <string name="wear_duration_minutes">%1$d 分钟</string>
     <string name="wear_duration_seconds">%1$d 秒</string>
+    <string name="wear_backup_menu">佩戴记录选项</string>
+    <string name="wear_export">导出佩戴记录</string>
+    <string name="wear_import">导入佩戴记录</string>
+    <string name="wear_export_done">已导出 %1$d 条佩戴记录</string>
+    <string name="wear_import_done">已新增或更新 %1$d 条，跳过重复或重叠记录 %2$d 条</string>
+    <string name="wear_export_error">导出失败，请重新选择保存位置</string>
+    <string name="wear_import_error">导入失败，请检查备份文件。原有记录已保留。</string>
 </resources>

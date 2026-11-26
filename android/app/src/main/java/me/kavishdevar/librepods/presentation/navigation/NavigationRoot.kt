@@ -94,6 +94,9 @@ fun NavigationRoot(
     }
 
     val actionButtons = when (currentScreen) {
+        Screen.WearStatistics -> listOf<@Composable (LayerBackdrop) -> Unit>(
+            { me.kavishdevar.librepods.presentation.screens.WearBackupMenu() }
+        )
         Screen.HeadTracking -> listOf<@Composable (backdrop: LayerBackdrop) -> Unit>(
             { scaffoldBackdrop ->
                 if (m3eEnabled) {

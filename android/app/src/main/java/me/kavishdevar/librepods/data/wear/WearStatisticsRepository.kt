@@ -86,6 +86,18 @@ class WearStatisticsRepository private constructor(context: Context) {
             )
         }
 
+    internal suspend fun snapshot(): List<WearSession> = withContext(dispatcher) {
+        val active = recorder.currentSession(SystemClock.elapsedRealtime())
+        database.read(0, Long.MAX_VALUE)
+            .map { if (active != null && it.id == active.id) active else it }
+            .filter { it.endMillis > it.startMillis }
+    }
+
+    internal suspend fun mergeBackup(sessions: List<WearSession>): Int = withContext(dispatcher) {
+        recorder // Close any interrupted recording before merging history.
+        database.merge(sessions).also { if (it > 0) _changes.value++ }
+    }
+
     companion object {
         @Volatile private var instance: WearStatisticsRepository? = null
 
@@ -130,6 +142,51 @@ private class WearDatabase(context: Context) :
             put("end_ms", endMillis)
             put("last_observed_ms", endMillis)
         }, "_id = ? AND end_ms IS NULL", arrayOf(id.toString()))
+    }
+
+    fun merge(sessions: List<WearSession>): Int {
+        val db = writableDatabase
+        var changed = 0
+        db.beginTransaction()
+        try {
+            for (session in sessions) {
+                // Accept a longer snapshot of the same session. Preserve local records
+                // if merging would overlap another session or touch the live recorder.
+                val overlaps = db.rawQuery(
+                    """SELECT * FROM (
+                           SELECT _id, start_ms, end_ms FROM sessions WHERE start_ms < ?
+                           ORDER BY start_ms DESC LIMIT 1
+                       ) WHERE end_ms IS NULL OR end_ms > ?
+                       UNION ALL SELECT _id, start_ms, end_ms FROM sessions
+                       WHERE start_ms >= ? AND start_ms < ? LIMIT 2""",
+                    arrayOf(session.startMillis.toString(), session.startMillis.toString(),
+                        session.startMillis.toString(), session.endMillis.toString())
+                ).use { c ->
+                    buildList {
+                        while (c.moveToNext()) add(WearSession(c.getLong(0), c.getLong(1),
+                            if (c.isNull(2)) Long.MAX_VALUE else c.getLong(2)))
+                    }
+                }
+                if (overlaps.isEmpty()) {
+                    val id = start(session.startMillis)
+                    finish(id, session.endMillis)
+                    changed++
+                } else {
+                    val prior = overlaps.singleOrNull() ?: continue
+                    if (prior.startMillis == session.startMillis && prior.endMillis < session.endMillis) {
+                        val values = ContentValues().apply {
+                            put("end_ms", session.endMillis)
+                            put("last_observed_ms", session.endMillis)
+                        }
+                        changed += db.update("sessions", values, "_id = ?", arrayOf(prior.id.toString()))
+                    }
+                }
+            }
+            db.setTransactionSuccessful()
+        } finally {
+            db.endTransaction()
+        }
+        return changed
     }
 
     fun read(start: Long, end: Long): List<WearSession> = buildList {

@@ -61,6 +61,21 @@ class WearStatisticsUiTest {
         compose.runOnIdle { assertEquals(monday.plusDays(6), openedDay) }
     }
 
+    @Test fun horizontalSwipesSelectAdjacentPeriodsAndStopAtTheEnds() {
+        val period = mutableStateOf(WearPeriod.DAY)
+        compose.setContent {
+            WearStatisticsScreen(period.value, report(period.value), 0, false,
+                { period.value = it }, {}, {})
+        }
+        val list = compose.onNode(hasScrollAction())
+        for (label in listOf("Week", "Month", "Month")) {
+            list.performTouchInput { swipeLeft() }
+            compose.onNodeWithText(label).assertIsSelected()
+        }
+        list.performTouchInput { swipeRight() }
+        compose.onNodeWithText("Week").assertIsSelected()
+    }
+
     @Test fun changingPeriodKeepsTheMeasuredChartWhileTheNextReportLoads() {
         val period = mutableStateOf(WearPeriod.DAY)
         val data = mutableStateOf(report(WearPeriod.DAY))

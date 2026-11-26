@@ -1,5 +1,10 @@
 package me.kavishdevar.librepods.presentation.screens
 
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -132,8 +137,27 @@ internal fun WearStatisticsScreen(
     val apple = LocalDesignSystem.current == DesignSystem.Apple
     val topPadding = if (apple) WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 80.dp else 16.dp
     val todayLabel = stringResource(R.string.wear_return_current)
+    val selectPeriod by rememberUpdatedState(onPeriod)
+    val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
     LazyColumn(
-        Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceContainer),
+        Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceContainer)
+            .pointerInput(selection, rtl) {
+                var distance = 0f
+                detectHorizontalDragGestures(
+                    onDragStart = { distance = 0f },
+                    onDragEnd = {
+                        val threshold = minOf(56.dp.toPx(), size.width * 0.20f)
+                        val logical = if (rtl) -distance else distance
+                        val next = when {
+                            logical < -threshold -> selection.ordinal + 1
+                            logical > threshold -> selection.ordinal - 1
+                            else -> selection.ordinal
+                        }
+                        WearPeriod.entries.getOrNull(next)?.takeIf { it != selection }?.let(selectPeriod)
+                    },
+                    onHorizontalDrag = { _, delta -> distance += delta },
+                )
+            },
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = topPadding, bottom = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {

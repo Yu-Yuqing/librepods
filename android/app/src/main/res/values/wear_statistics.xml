@@ -31,4 +31,11 @@
     <string name="wear_duration_hours_minutes">%1$d h %2$d min</string>
     <string name="wear_duration_minutes">%1$d min</string>
     <string name="wear_duration_seconds">%1$d s</string>
+    <string name="wear_backup_menu">Wearing history options</string>
+    <string name="wear_export">Export wearing history</string>
+    <string name="wear_import">Import wearing history</string>
+    <string name="wear_export_done">Exported %1$d sessions</string>
+    <string name="wear_import_done">Imported or updated %1$d sessions. Skipped %2$d existing or overlapping sessions.</string>
+    <string name="wear_export_error">Could not export this backup</string>
+    <string name="wear_import_error">Could not import this backup. Your records have been preserved.</string>
 </resources>

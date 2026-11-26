@@ -217,10 +217,10 @@ fun StyledScaffold(
                             .zIndex(2f)
                             .height(64.dp + topPadding)
                             .fillMaxWidth()
-                            .then(if (showBackButton || actionButtons.isNotEmpty()) Modifier.layerBackdrop(backdrop) else Modifier)
+                            .then(if (showBackButton) Modifier.layerBackdrop(backdrop) else Modifier)
                     ) {
                         Box(
-                            modifier = if (!showBackButton && actionButtons.isEmpty()) Modifier.background(bgColor)
+                            modifier = if (!showBackButton) Modifier.background(bgColor)
                             else Modifier.hazeEffect(
                                 state = hazeState,
                             ) {
@@ -277,7 +277,7 @@ fun StyledScaffold(
 
                     Box(
                         modifier = modifier
-                            .then(if (showBackButton || actionButtons.isNotEmpty()) Modifier.hazeSource(hazeState) else Modifier)
+                            .then(if (showBackButton) Modifier.hazeSource(hazeState) else Modifier)
                             .fillMaxSize()
                     ) {
                         content()
