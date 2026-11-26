@@ -60,6 +60,12 @@ jobs:
         if: steps.signing.outputs.signed == 'true'
         run: ./gradlew assembleFossRelease
         working-directory: android
+      - name: Verify RC2 signing certificate before publication
+        if: github.event_name == 'workflow_dispatch' && inputs.publish_release && steps.signing.outputs.signed == 'true'
+        run: |
+          apksigner=$(find "$ANDROID_HOME/build-tools" -name apksigner | sort -V | tail -1)
+          "$apksigner" verify --print-certs android/app/build/outputs/apk/foss/release/*-release.apk |
+            grep -Fx 'Signer #1 certificate SHA-256 digest: e8509e9b460eec156ee9bed8eaccf19e84d69662da06092a2a559d29cf5681a9'
       - name: Build debug APK without release secrets
         if: steps.signing.outputs.signed != 'true'
         run: ./gradlew assembleFossDebug
@@ -108,4 +114,4 @@ jobs:
           test -n "$apk"
           install_name="LibrePods-FOSS-v$VERSION-release.apk"
           cp "$apk" "$install_name"
-          gh release create "v$VERSION" "$install_name" --title "LibrePods $VERSION (community build)" --prerelease --notes-file docs/release-notes-rc5.md
+          gh release create "v$VERSION" "$install_name" --target "$GITHUB_SHA" --title "RC3" --prerelease --notes-file docs/release-notes-rc3.md

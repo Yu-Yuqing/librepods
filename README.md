@@ -1,7 +1,7 @@
-> **社区候选版：1.0.10-RC5**
+> **社区候选版：1.0.10-RC3**
 >
 > 本版支持左右滑动切换日、周、月统计，新增佩戴记录导入与导出。
-> [本版更新说明](docs/release-notes-rc5.md)。覆盖更新需要沿用原安装包签名，安装前请阅读说明。
+> [本版更新说明](docs/release-notes-rc3.md)。覆盖更新需要沿用原安装包签名，安装前请阅读说明。
 
 > [!WARNING]
 > librepods.org is not an official website of the LibrePods project. It inaccurately claims to be the official website of the project by claiming copyrights and using the LibrePods logo in the footer. And at the same time, they say that the project is not affiliated with the LibrePods project or its developers.
